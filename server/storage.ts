@@ -1,4 +1,4 @@
-import { users, whiteboardUsers, drawingStrokes, type User, type InsertUser, type UpsertUser, type WhiteboardUser, type InsertWhiteboardUser, type DrawingStroke, type InsertDrawingStroke } from "@shared/schema";
+import { users, whiteboardSessions, whiteboardUsers, drawingStrokes, type User, type InsertUser, type UpsertUser, type WhiteboardSession, type InsertWhiteboardSession, type WhiteboardUser, type InsertWhiteboardUser, type DrawingStroke, type InsertDrawingStroke } from "@shared/schema";
 
 export interface IStorage {
   // User methods for Replit Auth
@@ -9,21 +9,27 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   
+  // Session methods
+  createWhiteboardSession(session: InsertWhiteboardSession): Promise<WhiteboardSession>;
+  getWhiteboardSession(id: string): Promise<WhiteboardSession | undefined>;
+  updateSessionActivity(id: string): Promise<void>;
+  
   // Whiteboard user methods
   getWhiteboardUser(sessionId: string): Promise<WhiteboardUser | undefined>;
   createWhiteboardUser(user: InsertWhiteboardUser): Promise<WhiteboardUser>;
   updateWhiteboardUser(sessionId: string, updates: Partial<WhiteboardUser>): Promise<WhiteboardUser | undefined>;
   removeWhiteboardUser(sessionId: string): Promise<void>;
-  getActiveWhiteboardUsers(): Promise<WhiteboardUser[]>;
+  getActiveWhiteboardUsers(sessionId?: string): Promise<WhiteboardUser[]>;
   
   // Drawing stroke methods
   saveDrawingStroke(stroke: InsertDrawingStroke): Promise<DrawingStroke>;
-  getDrawingStrokes(): Promise<DrawingStroke[]>;
-  clearDrawingStrokes(): Promise<void>;
+  getDrawingStrokes(sessionId?: string): Promise<DrawingStroke[]>;
+  clearDrawingStrokes(sessionId?: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private sessions: Map<string, WhiteboardSession>;
   private whiteboardUsers: Map<string, WhiteboardUser>;
   private drawingStrokes: Map<number, DrawingStroke>;
   private currentUserId: number;
@@ -32,6 +38,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.sessions = new Map();
     this.whiteboardUsers = new Map();
     this.drawingStrokes = new Map();
     this.currentUserId = 1;
@@ -115,6 +122,29 @@ export class MemStorage implements IStorage {
     return undefined;
   }
 
+  // Session methods
+  async createWhiteboardSession(sessionData: InsertWhiteboardSession): Promise<WhiteboardSession> {
+    const session: WhiteboardSession = {
+      ...sessionData,
+      createdAt: new Date(),
+      lastActivity: new Date(),
+    };
+    this.sessions.set(session.id, session);
+    return session;
+  }
+
+  async getWhiteboardSession(id: string): Promise<WhiteboardSession | undefined> {
+    return this.sessions.get(id);
+  }
+
+  async updateSessionActivity(id: string): Promise<void> {
+    const session = this.sessions.get(id);
+    if (session) {
+      session.lastActivity = new Date();
+      this.sessions.set(id, session);
+    }
+  }
+
   async getWhiteboardUser(sessionId: string): Promise<WhiteboardUser | undefined> {
     return this.whiteboardUsers.get(sessionId);
   }
@@ -146,8 +176,12 @@ export class MemStorage implements IStorage {
     this.whiteboardUsers.delete(sessionId);
   }
 
-  async getActiveWhiteboardUsers(): Promise<WhiteboardUser[]> {
-    return Array.from(this.whiteboardUsers.values()).filter((user) => user.isActive);
+  async getActiveWhiteboardUsers(sessionId?: string): Promise<WhiteboardUser[]> {
+    const users = Array.from(this.whiteboardUsers.values()).filter((user) => user.isActive);
+    if (sessionId) {
+      return users.filter((user) => user.sessionId === sessionId);
+    }
+    return users;
   }
 
   async saveDrawingStroke(insertStroke: InsertDrawingStroke): Promise<DrawingStroke> {
@@ -161,12 +195,27 @@ export class MemStorage implements IStorage {
     return stroke;
   }
 
-  async getDrawingStrokes(): Promise<DrawingStroke[]> {
-    return Array.from(this.drawingStrokes.values());
+  async getDrawingStrokes(sessionId?: string): Promise<DrawingStroke[]> {
+    const strokes = Array.from(this.drawingStrokes.values());
+    if (sessionId) {
+      return strokes.filter((stroke) => stroke.sessionId === sessionId);
+    }
+    return strokes;
   }
 
-  async clearDrawingStrokes(): Promise<void> {
-    this.drawingStrokes.clear();
+  async clearDrawingStrokes(sessionId?: string): Promise<void> {
+    if (sessionId) {
+      // Clear only strokes for this session
+      const idsToDelete: number[] = [];
+      this.drawingStrokes.forEach((stroke, id) => {
+        if (stroke.sessionId === sessionId) {
+          idsToDelete.push(id);
+        }
+      });
+      idsToDelete.forEach(id => this.drawingStrokes.delete(id));
+    } else {
+      this.drawingStrokes.clear();
+    }
   }
 }
 

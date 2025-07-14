@@ -27,6 +27,14 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const whiteboardSessions = pgTable("whiteboard_sessions", {
+  id: varchar("id").primaryKey(), // UUID for the session
+  name: varchar("name", { length: 255 }).notNull(),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastActivity: timestamp("last_activity").defaultNow(),
+});
+
 export const whiteboardUsers = pgTable("whiteboard_users", {
   id: serial("id").primaryKey(),
   sessionId: text("session_id").notNull(),
@@ -37,8 +45,6 @@ export const whiteboardUsers = pgTable("whiteboard_users", {
   cursorX: integer("cursor_x").default(0),
   cursorY: integer("cursor_y").default(0),
 });
-
-
 
 export const drawingStrokes = pgTable("drawing_strokes", {
   id: serial("id").primaryKey(),
@@ -59,6 +65,11 @@ export const insertWhiteboardUserSchema = createInsertSchema(whiteboardUsers).om
   lastSeen: true,
 });
 
+export const insertWhiteboardSessionSchema = createInsertSchema(whiteboardSessions).omit({
+  createdAt: true,
+  lastActivity: true,
+});
+
 export const insertDrawingStrokeSchema = createInsertSchema(drawingStrokes).omit({
   id: true,
   timestamp: true,
@@ -67,6 +78,8 @@ export const insertDrawingStrokeSchema = createInsertSchema(drawingStrokes).omit
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type WhiteboardSession = typeof whiteboardSessions.$inferSelect;
+export type InsertWhiteboardSession = z.infer<typeof insertWhiteboardSessionSchema>;
 export type WhiteboardUser = typeof whiteboardUsers.$inferSelect;
 export type InsertWhiteboardUser = z.infer<typeof insertWhiteboardUserSchema>;
 export type DrawingStroke = typeof drawingStrokes.$inferSelect;

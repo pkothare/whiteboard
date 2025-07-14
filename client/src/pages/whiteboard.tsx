@@ -1,15 +1,18 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { useParams } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useAuth } from '@/hooks/useAuth';
 import Canvas from '@/components/whiteboard/canvas';
 import Toolbar from '@/components/whiteboard/toolbar';
-
 import MobileToolbar from '@/components/whiteboard/mobile-toolbar';
 import UserMenu from '@/components/auth/user-menu';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Wifi, WifiOff, ChevronRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle, Wifi, WifiOff, ChevronRight, Copy, Check, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WSMessage, type CursorData } from '@shared/schema';
+import { useToast } from '@/hooks/use-toast';
 
 interface User {
   userId: string;
@@ -20,6 +23,8 @@ interface User {
 
 export default function Whiteboard() {
   const { user } = useAuth();
+  const { sessionId } = useParams<{ sessionId?: string }>();
+  const { toast } = useToast();
   const [tool, setTool] = useState<'pen' | 'eraser' | 'select'>('pen');
   const [color, setColor] = useState('#3B82F6');
   const [size, setSize] = useState(5);
@@ -28,8 +33,16 @@ export default function Whiteboard() {
   const [currentUser, setCurrentUser] = useState<{ userId: string; name: string; color: string } | null>(null);
   const [showConnectionAlert, setShowConnectionAlert] = useState(false);
   const [isToolbarCollapsed, setIsToolbarCollapsed] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
+  const [copied, setCopied] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const messageHandlersRef = useRef<((message: WSMessage) => void)[]>([]);
+
+  // Fetch session info if sessionId is provided
+  const { data: session } = useQuery({
+    queryKey: ['/api/sessions', sessionId],
+    enabled: !!sessionId,
+  });
 
   const handleMessage = useCallback((message: WSMessage) => {
     switch (message.type) {
@@ -185,6 +198,25 @@ export default function Whiteboard() {
     }
   };
 
+  const copySessionLink = async () => {
+    if (!sessionId) return;
+    
+    const sessionUrl = `${window.location.origin}/whiteboard/${sessionId}`;
+    await navigator.clipboard.writeText(sessionUrl);
+    setCopied(true);
+    
+    toast({
+      title: "Link Copied!",
+      description: "Session link copied to clipboard.",
+    });
+    
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const toggleShareCard = () => {
+    setShowShareCard(!showShareCard);
+  };
+
   return (
     <div className="h-screen bg-white font-sans overflow-hidden">
       {/* Header */}
@@ -207,7 +239,7 @@ export default function Whiteboard() {
               <span className="text-sm text-slate-600">{getConnectionStatusText()}</span>
             </div>
             
-            {/* User Count */}
+            {/* User Count and Actions */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <svg className="w-4 h-4 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
@@ -215,6 +247,19 @@ export default function Whiteboard() {
                 </svg>
                 <span className="text-sm text-slate-600">{users.length} users online</span>
               </div>
+              
+              {/* Share Button */}
+              {sessionId && (
+                <Button
+                  onClick={toggleShareCard}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center space-x-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Share</span>
+                </Button>
+              )}
               
               {/* User Menu */}
               {user && <UserMenu user={user} />}
@@ -242,6 +287,46 @@ export default function Whiteboard() {
 
         {/* Canvas Container */}
         <div className="flex-1 relative">
+          {/* Share Card */}
+          {showShareCard && sessionId && (
+            <div className="absolute top-4 right-4 z-30">
+              <Card className="w-80 shadow-lg">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    Share Session
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowShareCard(false)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {session && (
+                    <p className="text-sm text-gray-600 mb-3">
+                      {session.name}
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={copySessionLink}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                      {copied ? 'Copied!' : 'Copy Link'}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Share this link to invite others to collaborate on this whiteboard.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Floating Toggle Button */}
           {isToolbarCollapsed && (
             <div className="absolute top-4 left-4 z-20">

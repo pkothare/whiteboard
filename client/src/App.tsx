@@ -30,6 +30,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/whiteboard" component={Whiteboard} />
+          <Route path="/whiteboard/:sessionId" component={Whiteboard} />
         </>
       )}
       <Route component={NotFound} />

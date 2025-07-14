@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { WSMessage, type CursorData, type StrokeData } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import crypto from "crypto";
 
 const userColors = [
   '#EF4444', '#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899',
@@ -244,6 +245,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Session routes
+  app.post('/api/sessions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { name } = req.body;
+      
+      const sessionId = crypto.randomUUID();
+      const session = await storage.createWhiteboardSession({
+        id: sessionId,
+        name: name || 'Untitled Whiteboard',
+        createdBy: userId,
+      });
+      
+      res.json(session);
+    } catch (error) {
+      console.error("Error creating session:", error);
+      res.status(500).json({ message: "Failed to create session" });
+    }
+  });
+
+  app.get('/api/sessions/:id', async (req, res) => {
+    try {
+      const sessionId = req.params.id;
+      const session = await storage.getWhiteboardSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      res.json(session);
+    } catch (error) {
+      console.error("Error fetching session:", error);
+      res.status(500).json({ message: "Failed to fetch session" });
     }
   });
 
