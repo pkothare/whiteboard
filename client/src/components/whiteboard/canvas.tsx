@@ -317,17 +317,27 @@ export default function Canvas({
               transform: 'translate(-50%, -50%)',
             }}
           >
-            <div className="flex items-center space-x-2">
-              <div 
-                className="w-4 h-4 rounded-full border-2 border-white shadow-lg"
-                style={{ backgroundColor: cursor.color }}
-              />
-              <div 
-                className="text-white px-2 py-1 rounded text-xs font-medium"
-                style={{ backgroundColor: cursor.color }}
-              >
-                {cursor.userName}
-              </div>
+            {/* Cursor dot positioned at exact coordinates */}
+            <div 
+              className="w-3 h-3 rounded-full border-2 border-white shadow-lg absolute"
+              style={{ 
+                backgroundColor: cursor.color,
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)'
+              }}
+            />
+            {/* User name label offset from the cursor dot */}
+            <div 
+              className="text-white px-2 py-1 rounded text-xs font-medium absolute whitespace-nowrap"
+              style={{ 
+                backgroundColor: cursor.color,
+                left: '100%',
+                top: '-50%',
+                marginLeft: '8px'
+              }}
+            >
+              {cursor.userName}
             </div>
           </div>
         );
