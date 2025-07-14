@@ -71,6 +71,12 @@ export default function Whiteboard() {
         }
         break;
         
+      case 'session_joined':
+        // Handle successful session join with session-specific data
+        console.log('Successfully joined session:', message.data?.sessionId);
+        // The existing strokes are handled by the canvas component
+        break;
+        
       case 'user_joined':
         if (message.data) {
           setUsers(prev => [...prev.filter(u => u.userId !== message.data.userId), {
@@ -132,7 +138,7 @@ export default function Whiteboard() {
     onMessage: handleMessage,
     onConnect: () => {
       handleConnect();
-      // Send user info when connected (with a slight delay to ensure connection is ready)
+      // Send user info and session join when connected
       if (user) {
         setTimeout(() => {
           const userName = user.firstName && user.lastName 
@@ -141,13 +147,24 @@ export default function Whiteboard() {
           
           console.log('Sending user info:', userName);
           try {
+            // First send user info
             sendMessage({
               type: 'user_info',
               data: { userName },
               timestamp: Date.now(),
             });
+            
+            // Then join session if we have a sessionId
+            if (sessionId) {
+              console.log('Joining session:', sessionId);
+              sendMessage({
+                type: 'join_session',
+                data: { sessionId },
+                timestamp: Date.now(),
+              });
+            }
           } catch (error) {
-            console.error('Error sending user info:', error);
+            console.error('Error sending initial messages:', error);
           }
         }, 100);
       }

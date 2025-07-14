@@ -31,8 +31,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   console.log('WebSocket server listening on path: /ws');
   
-  // Store WebSocket connections
-  const connections = new Map<string, { ws: WebSocket; userId: string; userName: string; color: string }>();
+  // Store WebSocket connections by session
+  const connections = new Map<string, { ws: WebSocket; userId: string; userName: string; color: string; whiteboardSessionId?: string }>();
+  const sessionConnections = new Map<string, Set<string>>(); // sessionId -> Set of userIds
   
   // Generate random user name
   function generateUserName(): string {
@@ -43,101 +44,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return `${adj} ${noun}`;
   }
 
-  // Broadcast to all connected clients
-  function broadcast(message: WSMessage, excludeUserId?: string) {
+  // Broadcast to all connected clients in a specific session
+  function broadcast(message: WSMessage, whiteboardSessionId?: string, excludeUserId?: string) {
     const messageStr = JSON.stringify(message);
-    connections.forEach((connection, sessionId) => {
-      if (connection.userId !== excludeUserId && connection.ws.readyState === WebSocket.OPEN) {
-        connection.ws.send(messageStr);
-      }
-    });
+    
+    if (whiteboardSessionId) {
+      // Broadcast only to users in the same whiteboard session
+      const usersInSession = sessionConnections.get(whiteboardSessionId) || new Set();
+      usersInSession.forEach(userId => {
+        const connection = connections.get(userId);
+        if (connection && connection.userId !== excludeUserId && connection.ws.readyState === WebSocket.OPEN) {
+          connection.ws.send(messageStr);
+        }
+      });
+    } else {
+      // Broadcast to all connections (fallback)
+      connections.forEach((connection, userId) => {
+        if (connection.userId !== excludeUserId && connection.ws.readyState === WebSocket.OPEN) {
+          connection.ws.send(messageStr);
+        }
+      });
+    }
   }
 
-  // Send user list to all clients
-  async function sendUserList() {
-    const users = await storage.getActiveWhiteboardUsers();
-    const userList = Array.from(connections.values()).map(conn => ({
-      userId: conn.userId,
-      name: conn.userName,
-      color: conn.color,
-      isActive: true
-    }));
-    
-    broadcast({
-      type: 'user_list',
-      data: userList,
-      timestamp: Date.now()
-    });
+  // Send user list to clients in a specific session
+  async function sendUserList(whiteboardSessionId?: string) {
+    if (whiteboardSessionId) {
+      const usersInSession = sessionConnections.get(whiteboardSessionId) || new Set();
+      const userList = Array.from(usersInSession).map(userId => {
+        const connection = connections.get(userId);
+        return connection ? {
+          userId: connection.userId,
+          name: connection.userName,
+          color: connection.color,
+          isActive: true
+        } : null;
+      }).filter(Boolean);
+      
+      broadcast({
+        type: 'user_list',
+        data: userList,
+        timestamp: Date.now()
+      }, whiteboardSessionId);
+    }
   }
 
   wss.on('connection', async (ws, req) => {
     console.log('New WebSocket connection established from:', req.socket.remoteAddress);
-    const sessionId = Math.random().toString(36).substr(2, 9);
+    const userId = Math.random().toString(36).substr(2, 9);
     let userName = generateUserName(); // fallback
+    let whiteboardSessionId: string | undefined;
     const color = userColors[Math.floor(Math.random() * userColors.length)];
     
     // Store connection
-    connections.set(sessionId, {
+    connections.set(userId, {
       ws,
-      userId: sessionId,
+      userId,
       userName,
-      color
-    });
-
-    // Create whiteboard user record
-    await storage.createWhiteboardUser({
-      sessionId,
-      name: userName,
       color,
-      isActive: true,
-      cursorX: 0,
-      cursorY: 0
+      whiteboardSessionId
     });
 
-    // Send initial data to new user
-    const existingStrokes = await storage.getDrawingStrokes();
+    // Send initial data to new user (without session-specific data initially)
     ws.send(JSON.stringify({
       type: 'init',
       data: {
-        userId: sessionId,
+        userId,
         userName,
         color,
-        strokes: existingStrokes
+        strokes: [] // Will be loaded when session is set
       }
     }));
-
-    // Notify others of new user
-    broadcast({
-      type: 'user_joined',
-      data: { userId: sessionId, name: userName, color },
-      timestamp: Date.now()
-    }, sessionId);
-
-    // Send updated user list
-    await sendUserList();
 
     ws.on('message', async (data) => {
       try {
         const message: WSMessage = JSON.parse(data.toString());
         
         switch (message.type) {
+          case 'join_session':
+            // User wants to join a specific whiteboard session
+            if (message.data && message.data.sessionId) {
+              whiteboardSessionId = message.data.sessionId;
+              
+              // Update connection with session info
+              const connection = connections.get(userId);
+              if (connection) {
+                connection.whiteboardSessionId = whiteboardSessionId;
+                connections.set(userId, connection);
+              }
+              
+              // Add user to session
+              if (!sessionConnections.has(whiteboardSessionId)) {
+                sessionConnections.set(whiteboardSessionId, new Set());
+              }
+              sessionConnections.get(whiteboardSessionId)!.add(userId);
+              
+              // Create whiteboard user record for this session
+              await storage.createWhiteboardUser({
+                sessionId: userId,
+                name: userName,
+                color,
+                isActive: true,
+                cursorX: 0,
+                cursorY: 0
+              });
+              
+              // Send session-specific strokes
+              const existingStrokes = await storage.getDrawingStrokes(whiteboardSessionId);
+              ws.send(JSON.stringify({
+                type: 'session_joined',
+                data: {
+                  sessionId: whiteboardSessionId,
+                  strokes: existingStrokes
+                }
+              }));
+              
+              // Notify others in the session of new user
+              broadcast({
+                type: 'user_joined',
+                data: { userId, name: userName, color },
+                timestamp: Date.now()
+              }, whiteboardSessionId, userId);
+              
+              // Send updated user list for this session
+              await sendUserList(whiteboardSessionId);
+            }
+            break;
+            
           case 'user_info':
             // Update user name from client
             console.log('Received user_info:', message.data?.userName);
             if (message.data?.userName) {
-              const connection = connections.get(sessionId);
+              const connection = connections.get(userId);
               if (connection) {
                 console.log('Updating user name from', connection.userName, 'to', message.data.userName);
                 connection.userName = message.data.userName;
-                connections.set(sessionId, connection);
+                userName = message.data.userName;
+                connections.set(userId, connection);
                 
                 // Update whiteboard user record
-                await storage.updateWhiteboardUser(sessionId, {
+                await storage.updateWhiteboardUser(userId, {
                   name: message.data.userName
                 });
                 
-                // Send updated user list
-                await sendUserList();
+                // Send updated user list for this session
+                if (whiteboardSessionId) {
+                  await sendUserList(whiteboardSessionId);
+                }
                 
                 // Notify user that their info was updated
                 ws.send(JSON.stringify({
@@ -152,60 +205,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'stroke_start':
           case 'stroke_move':
           case 'stroke_end':
-            // Save stroke data
-            if (message.data) {
+            // Save stroke data for the specific session
+            if (message.data && whiteboardSessionId) {
               await storage.saveDrawingStroke({
-                sessionId,
-                userId: sessionId,
-                strokeData: message.data
+                sessionId: whiteboardSessionId,
+                type: message.type as 'stroke_start' | 'stroke_move' | 'stroke_end',
+                x: message.data.x,
+                y: message.data.y,
+                color: message.data.color,
+                size: message.data.size,
+                tool: message.data.tool,
+                pressure: message.data.pressure || 1.0,
+                userId: userId
               });
             }
             
-            // Broadcast to other users
+            // Broadcast to other users in the same session
             broadcast({
               ...message,
-              userId: sessionId,
+              userId: userId,
               timestamp: Date.now()
-            }, sessionId);
+            }, whiteboardSessionId, userId);
             break;
             
           case 'cursor_move':
             // Update cursor position
             if (message.data) {
-              await storage.updateWhiteboardUser(sessionId, {
+              await storage.updateWhiteboardUser(userId, {
                 cursorX: message.data.x,
                 cursorY: message.data.y
               });
             }
             
             // Get current connection info
-            const connection = connections.get(sessionId);
+            const connection = connections.get(userId);
             if (connection) {
-              // Broadcast cursor position to other users
+              // Broadcast cursor position to other users in the same session
               broadcast({
                 type: 'cursor_move',
                 data: {
-                  userId: sessionId,
+                  userId: userId,
                   userName: connection.userName,
                   color: connection.color,
                   x: message.data.x,
                   y: message.data.y
                 },
                 timestamp: Date.now()
-              }, sessionId);
+              }, whiteboardSessionId, userId);
             }
             break;
             
           case 'clear_canvas':
-            // Clear all strokes
-            await storage.clearDrawingStrokes();
+            // Clear strokes for the specific session
+            if (whiteboardSessionId) {
+              await storage.clearDrawingStrokes(whiteboardSessionId);
+            }
             
-            // Broadcast clear command to ALL users (including sender)
+            // Broadcast clear command to users in the same session (including sender)
             broadcast({
               type: 'clear_canvas',
-              data: { userId: sessionId },
+              data: { userId: userId },
               timestamp: Date.now()
-            }); // Don't exclude sender so their canvas clears too
+            }, whiteboardSessionId); // Don't exclude sender so their canvas clears too
             break;
         }
       } catch (error) {
@@ -215,20 +276,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     ws.on('close', async () => {
       // Remove from connections
-      connections.delete(sessionId);
+      connections.delete(userId);
+      
+      // Remove from session connections
+      if (whiteboardSessionId) {
+        const usersInSession = sessionConnections.get(whiteboardSessionId);
+        if (usersInSession) {
+          usersInSession.delete(userId);
+          if (usersInSession.size === 0) {
+            sessionConnections.delete(whiteboardSessionId);
+          }
+        }
+      }
       
       // Mark user as inactive
-      await storage.updateWhiteboardUser(sessionId, { isActive: false });
+      await storage.updateWhiteboardUser(userId, { isActive: false });
       
-      // Notify others of user leaving
-      broadcast({
-        type: 'user_left',
-        data: { userId: sessionId, name: userName },
-        timestamp: Date.now()
-      });
-      
-      // Send updated user list
-      await sendUserList();
+      // Notify others in the session of user leaving
+      if (whiteboardSessionId) {
+        broadcast({
+          type: 'user_left',
+          data: { userId: userId, name: userName },
+          timestamp: Date.now()
+        }, whiteboardSessionId);
+        
+        // Send updated user list for this session
+        await sendUserList(whiteboardSessionId);
+      }
     });
 
     ws.on('error', (error) => {
