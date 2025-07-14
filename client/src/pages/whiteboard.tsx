@@ -26,6 +26,7 @@ export default function Whiteboard() {
   const [userCursors, setUserCursors] = useState<CursorData[]>([]);
   const [currentUser, setCurrentUser] = useState<{ userId: string; name: string; color: string } | null>(null);
   const [showConnectionAlert, setShowConnectionAlert] = useState(false);
+  const [isToolbarCollapsed, setIsToolbarCollapsed] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const messageHandlersRef = useRef<((message: WSMessage) => void)[]>([]);
 
@@ -216,6 +217,8 @@ export default function Whiteboard() {
           onClearCanvas={handleClearCanvas}
           onSaveCanvas={handleSaveCanvas}
           isConnected={isConnected}
+          isCollapsed={isToolbarCollapsed}
+          onToggleCollapse={() => setIsToolbarCollapsed(!isToolbarCollapsed)}
         />
 
         {/* Canvas Container */}

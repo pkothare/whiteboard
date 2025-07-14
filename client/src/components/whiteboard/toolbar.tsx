@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Pen, Eraser, MousePointer, Trash2, Download } from 'lucide-react';
+import { Pen, Eraser, MousePointer, Trash2, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ToolbarProps {
   tool: 'pen' | 'eraser' | 'select';
@@ -13,6 +13,8 @@ interface ToolbarProps {
   onClearCanvas: () => void;
   onSaveCanvas: () => void;
   isConnected: boolean;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 const colors = [
@@ -36,6 +38,8 @@ export default function Toolbar({
   onClearCanvas,
   onSaveCanvas,
   isConnected,
+  isCollapsed,
+  onToggleCollapse,
 }: ToolbarProps) {
   const handleClearCanvas = () => {
     if (window.confirm('Are you sure you want to clear the canvas? This action cannot be undone.')) {
@@ -44,10 +48,24 @@ export default function Toolbar({
   };
 
   return (
-    <div className="bg-white border-r border-slate-200 shadow-sm w-16 lg:w-64 flex flex-col">
+    <div className={`bg-white border-r border-slate-200 shadow-sm flex flex-col transition-all duration-300 ${
+      isCollapsed ? 'w-16' : 'w-16 lg:w-64'
+    }`}>
+      {/* Collapse Toggle */}
+      <div className="p-2 border-b border-slate-200 hidden lg:flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleCollapse}
+          className="p-1 h-6 w-6"
+        >
+          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </Button>
+      </div>
+
       {/* Drawing Tools */}
       <div className="p-4 border-b border-slate-200">
-        <h3 className="text-sm font-medium text-slate-700 mb-3 hidden lg:block">Drawing Tools</h3>
+        <h3 className={`text-sm font-medium text-slate-700 mb-3 ${isCollapsed ? 'hidden' : 'hidden lg:block'}`}>Drawing Tools</h3>
         <div className="space-y-2">
           <Button
             variant={tool === 'pen' ? 'default' : 'outline'}
@@ -56,7 +74,7 @@ export default function Toolbar({
             disabled={!isConnected}
           >
             <Pen className="w-4 h-4" />
-            <span className="hidden lg:block">Pen</span>
+            <span className={isCollapsed ? 'hidden' : 'hidden lg:block'}>Pen</span>
           </Button>
           
           <Button
@@ -66,7 +84,7 @@ export default function Toolbar({
             disabled={!isConnected}
           >
             <Eraser className="w-4 h-4" />
-            <span className="hidden lg:block">Eraser</span>
+            <span className={isCollapsed ? 'hidden' : 'hidden lg:block'}>Eraser</span>
           </Button>
           
           <Button
@@ -76,14 +94,14 @@ export default function Toolbar({
             disabled={!isConnected}
           >
             <MousePointer className="w-4 h-4" />
-            <span className="hidden lg:block">Select</span>
+            <span className={isCollapsed ? 'hidden' : 'hidden lg:block'}>Select</span>
           </Button>
         </div>
       </div>
 
       {/* Brush Size */}
       <div className="p-4 border-b border-slate-200">
-        <h3 className="text-sm font-medium text-slate-700 mb-3 hidden lg:block">Brush Size</h3>
+        <h3 className={`text-sm font-medium text-slate-700 mb-3 ${isCollapsed ? 'hidden' : 'hidden lg:block'}`}>Brush Size</h3>
         <div className="space-y-2">
           {brushSizes.map((brushSize) => (
             <Button
@@ -94,7 +112,7 @@ export default function Toolbar({
               disabled={!isConnected}
             >
               <div className={`${brushSize.dotSize} bg-current rounded-full`} />
-              <span className="hidden lg:block text-sm">{brushSize.label}</span>
+              <span className={`text-sm ${isCollapsed ? 'hidden' : 'hidden lg:block'}`}>{brushSize.label}</span>
             </Button>
           ))}
         </div>
@@ -102,8 +120,8 @@ export default function Toolbar({
 
       {/* Color Picker */}
       <div className="p-4 border-b border-slate-200">
-        <h3 className="text-sm font-medium text-slate-700 mb-3 hidden lg:block">Colors</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+        <h3 className={`text-sm font-medium text-slate-700 mb-3 ${isCollapsed ? 'hidden' : 'hidden lg:block'}`}>Colors</h3>
+        <div className={`grid gap-2 ${isCollapsed ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-3'}`}>
           {colors.map((colorOption) => (
             <button
               key={colorOption}
@@ -120,7 +138,7 @@ export default function Toolbar({
         </div>
         
         {/* Custom Color Input */}
-        <div className="mt-3 hidden lg:block">
+        <div className={`mt-3 ${isCollapsed ? 'hidden' : 'hidden lg:block'}`}>
           <input
             type="color"
             value={color}
@@ -140,7 +158,7 @@ export default function Toolbar({
           disabled={!isConnected}
         >
           <Trash2 className="w-4 h-4" />
-          <span className="hidden lg:block">Clear Canvas</span>
+          <span className={isCollapsed ? 'hidden' : 'hidden lg:block'}>Clear Canvas</span>
         </Button>
         
         <Button
@@ -149,7 +167,7 @@ export default function Toolbar({
           onClick={onSaveCanvas}
         >
           <Download className="w-4 h-4" />
-          <span className="hidden lg:block">Save</span>
+          <span className={isCollapsed ? 'hidden' : 'hidden lg:block'}>Save</span>
         </Button>
       </div>
     </div>
