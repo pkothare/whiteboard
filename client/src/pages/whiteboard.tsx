@@ -101,7 +101,21 @@ export default function Whiteboard() {
 
   const { isConnected, connectionStatus, sendMessage } = useWebSocket({
     onMessage: handleMessage,
-    onConnect: handleConnect,
+    onConnect: () => {
+      handleConnect();
+      // Send user info when connected
+      if (user) {
+        const userName = user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}`
+          : user.firstName || user.email?.split('@')[0] || 'Anonymous User';
+        
+        sendMessage({
+          type: 'user_info',
+          data: { userName },
+          timestamp: Date.now(),
+        });
+      }
+    },
     onDisconnect: handleDisconnect,
     onError: handleError,
   });
@@ -238,16 +252,18 @@ export default function Whiteboard() {
             </div>
           )}
           
-          <Canvas
-            tool={tool}
-            color={color}
-            size={size}
-            onSendMessage={sendMessage}
-            onMessage={registerMessageHandler}
-            isConnected={isConnected}
-            userId={currentUser?.userId}
-            userCursors={userCursors}
-          />
+          <div className="w-full h-full">
+            <Canvas
+              tool={tool}
+              color={color}
+              size={size}
+              onSendMessage={sendMessage}
+              onMessage={registerMessageHandler}
+              isConnected={isConnected}
+              userId={currentUser?.userId}
+              userCursors={userCursors}
+            />
+          </div>
         </div>
 
         {/* User Panel */}

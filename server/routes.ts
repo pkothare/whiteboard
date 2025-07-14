@@ -72,7 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   wss.on('connection', async (ws, req) => {
     console.log('New WebSocket connection established from:', req.socket.remoteAddress);
     const sessionId = Math.random().toString(36).substr(2, 9);
-    const userName = generateUserName();
+    let userName = generateUserName(); // fallback
     const color = userColors[Math.floor(Math.random() * userColors.length)];
     
     // Store connection
@@ -120,6 +120,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const message: WSMessage = JSON.parse(data.toString());
         
         switch (message.type) {
+          case 'user_info':
+            // Update user name from client
+            if (message.data?.userName) {
+              const connection = connections.get(sessionId);
+              if (connection) {
+                connection.userName = message.data.userName;
+                connections.set(sessionId, connection);
+                
+                // Update whiteboard user record
+                await storage.updateWhiteboardUser(sessionId, {
+                  name: message.data.userName
+                });
+                
+                // Send updated user list
+                await sendUserList();
+              }
+            }
+            break;
+            
           case 'stroke_start':
           case 'stroke_move':
           case 'stroke_end':
