@@ -33,12 +33,14 @@ export const sessionMiddleware = session({
 export function configurePassport() {
   // Google OAuth Strategy
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    console.log('Configuring Google OAuth with callback URL:', `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/auth/google/callback`);
     passport.use(
       new GoogleStrategy(
         {
           clientID: process.env.GOOGLE_CLIENT_ID,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET,
           callbackURL: `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/auth/google/callback`,
+          scope: ['profile', 'email']
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
@@ -136,11 +138,22 @@ export function setupAuthRoutes(app: Express) {
   app.use(passport.session());
 
   // Google OAuth routes
-  app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+  app.get('/auth/google', (req, res, next) => {
+    console.log('Starting Google OAuth flow...');
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'],
+      accessType: 'offline',
+      prompt: 'consent'
+    })(req, res, next);
+  });
+  
   app.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login' }),
-    (req, res) => {
-      res.redirect('/');
+    (req, res, next) => {
+      console.log('Google OAuth callback received');
+      passport.authenticate('google', { 
+        failureRedirect: '/login',
+        successRedirect: '/'
+      })(req, res, next);
     }
   );
 
