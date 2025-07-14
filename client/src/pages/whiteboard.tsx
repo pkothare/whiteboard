@@ -7,7 +7,8 @@ import UserPanel from '@/components/whiteboard/user-panel';
 import MobileToolbar from '@/components/whiteboard/mobile-toolbar';
 import UserMenu from '@/components/auth/user-menu';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { AlertCircle, Wifi, WifiOff, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { WSMessage, type CursorData } from '@shared/schema';
 
 interface User {
@@ -223,6 +224,20 @@ export default function Whiteboard() {
 
         {/* Canvas Container */}
         <div className="flex-1 relative">
+          {/* Floating Toggle Button */}
+          {isToolbarCollapsed && (
+            <div className="absolute top-4 left-4 z-20">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsToolbarCollapsed(false)}
+                className="shadow-lg"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+          
           <Canvas
             tool={tool}
             color={color}

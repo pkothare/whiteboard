@@ -49,7 +49,7 @@ export default function Toolbar({
 
   return (
     <div className={`bg-white border-r border-slate-200 shadow-sm flex flex-col transition-all duration-300 ${
-      isCollapsed ? 'w-16' : 'w-16 lg:w-64'
+      isCollapsed ? 'w-0 overflow-hidden' : 'w-16 lg:w-64'
     }`}>
       {/* Collapse Toggle */}
       <div className="p-2 border-b border-slate-200 hidden lg:flex justify-end">
