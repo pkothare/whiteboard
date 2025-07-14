@@ -4,8 +4,13 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  avatar: text("avatar"),
+  provider: text("provider").notNull(), // 'google' or 'apple' or 'email'
+  providerId: text("provider_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const whiteboardUsers = pgTable("whiteboard_users", {
@@ -19,6 +24,14 @@ export const whiteboardUsers = pgTable("whiteboard_users", {
   cursorY: integer("cursor_y").default(0),
 });
 
+// Sessions table for authentication
+export const sessions = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const drawingStrokes = pgTable("drawing_strokes", {
   id: serial("id").primaryKey(),
   sessionId: text("session_id").notNull(),
@@ -27,9 +40,10 @@ export const drawingStrokes = pgTable("drawing_strokes", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertWhiteboardUserSchema = createInsertSchema(whiteboardUsers).omit({
@@ -42,8 +56,14 @@ export const insertDrawingStrokeSchema = createInsertSchema(drawingStrokes).omit
   timestamp: true,
 });
 
+export const insertSessionSchema = createInsertSchema(sessions).omit({
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type Session = typeof sessions.$inferSelect;
+export type InsertSession = z.infer<typeof insertSessionSchema>;
 export type WhiteboardUser = typeof whiteboardUsers.$inferSelect;
 export type InsertWhiteboardUser = z.infer<typeof insertWhiteboardUserSchema>;
 export type DrawingStroke = typeof drawingStrokes.$inferSelect;

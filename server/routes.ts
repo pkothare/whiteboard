@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { WSMessage, type CursorData, type StrokeData } from "@shared/schema";
+import { sessionMiddleware, configurePassport, setupAuthRoutes, requireAuth } from "./auth";
 
 const userColors = [
   '#EF4444', '#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899',
@@ -11,6 +12,11 @@ const userColors = [
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // Setup authentication
+  configurePassport();
+  app.use(sessionMiddleware);
+  setupAuthRoutes(app);
   
   // WebSocket server setup
   const wss = new WebSocketServer({ 

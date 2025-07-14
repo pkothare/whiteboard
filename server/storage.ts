@@ -1,9 +1,17 @@
-import { users, whiteboardUsers, drawingStrokes, type User, type InsertUser, type WhiteboardUser, type InsertWhiteboardUser, type DrawingStroke, type InsertDrawingStroke } from "@shared/schema";
+import { users, sessions, whiteboardUsers, drawingStrokes, type User, type InsertUser, type Session, type InsertSession, type WhiteboardUser, type InsertWhiteboardUser, type DrawingStroke, type InsertDrawingStroke } from "@shared/schema";
 
 export interface IStorage {
+  // User methods
   getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByProviderId(provider: string, providerId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
+  
+  // Session methods
+  createSession(session: InsertSession): Promise<Session>;
+  getSession(id: string): Promise<Session | undefined>;
+  deleteSession(id: string): Promise<void>;
   
   // Whiteboard user methods
   getWhiteboardUser(sessionId: string): Promise<WhiteboardUser | undefined>;
@@ -20,6 +28,7 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
+  private sessions: Map<string, Session>;
   private whiteboardUsers: Map<string, WhiteboardUser>;
   private drawingStrokes: Map<number, DrawingStroke>;
   private currentUserId: number;
@@ -28,6 +37,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.sessions = new Map();
     this.whiteboardUsers = new Map();
     this.drawingStrokes = new Map();
     this.currentUserId = 1;
@@ -39,17 +49,55 @@ export class MemStorage implements IStorage {
     return this.users.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
+  async getUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+      (user) => user.email === email,
+    );
+  }
+
+  async getUserByProviderId(provider: string, providerId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.provider === provider && user.providerId === providerId,
     );
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      avatar: insertUser.avatar || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
     this.users.set(id, user);
     return user;
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, ...updates, updatedAt: new Date() };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async createSession(insertSession: InsertSession): Promise<Session> {
+    const session: Session = {
+      ...insertSession,
+      createdAt: new Date(),
+    };
+    this.sessions.set(session.id, session);
+    return session;
+  }
+
+  async getSession(id: string): Promise<Session | undefined> {
+    return this.sessions.get(id);
+  }
+
+  async deleteSession(id: string): Promise<void> {
+    this.sessions.delete(id);
   }
 
   async getWhiteboardUser(sessionId: string): Promise<WhiteboardUser | undefined> {
