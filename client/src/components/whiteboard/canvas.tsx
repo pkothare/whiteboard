@@ -207,21 +207,15 @@ export default function Canvas({
     event.preventDefault();
     const coords = getCoordinates(event);
 
-    // Send cursor position with canvas dimensions for proper scaling
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const rect = canvas.getBoundingClientRect();
-      onSendMessage({
-        type: 'cursor_move',
-        data: {
-          x: coords.x,
-          y: coords.y,
-          canvasWidth: rect.width,
-          canvasHeight: rect.height
-        },
-        timestamp: Date.now(),
-      });
-    }
+    // Send cursor position - use the same coordinates as drawing
+    onSendMessage({
+      type: 'cursor_move',
+      data: {
+        x: coords.x,
+        y: coords.y
+      },
+      timestamp: Date.now(),
+    });
 
     if (!isDrawingRef.current || tool === 'select') return;
 
@@ -299,31 +293,20 @@ export default function Canvas({
       
       {/* User Cursors */}
       {userCursors.map((cursor) => {
-        // Ensure cursor coordinates are within canvas bounds
-        const canvas = canvasRef.current;
-        if (!canvas) return null;
-        
-        const rect = canvas.getBoundingClientRect();
-        const x = Math.max(0, Math.min(cursor.x, rect.width));
-        const y = Math.max(0, Math.min(cursor.y, rect.height));
-        
         return (
           <div
             key={cursor.userId}
             className="absolute pointer-events-none z-10"
             style={{
-              left: x + 'px',
-              top: y + 'px',
-              transform: 'translate(-50%, -50%)',
+              left: cursor.x + 'px',
+              top: cursor.y + 'px',
             }}
           >
             {/* Cursor dot positioned at exact coordinates */}
             <div 
-              className="w-3 h-3 rounded-full border-2 border-white shadow-lg absolute"
+              className="w-3 h-3 rounded-full border-2 border-white shadow-lg"
               style={{ 
                 backgroundColor: cursor.color,
-                left: '50%',
-                top: '50%',
                 transform: 'translate(-50%, -50%)'
               }}
             />
@@ -332,9 +315,8 @@ export default function Canvas({
               className="text-white px-2 py-1 rounded text-xs font-medium absolute whitespace-nowrap"
               style={{ 
                 backgroundColor: cursor.color,
-                left: '100%',
-                top: '-50%',
-                marginLeft: '8px'
+                left: '10px',
+                top: '-30px'
               }}
             >
               {cursor.userName}

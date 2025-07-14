@@ -180,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Get current connection info
             const connection = connections.get(sessionId);
             if (connection) {
-              // Broadcast cursor position to other users with original canvas dimensions
+              // Broadcast cursor position to other users
               broadcast({
                 type: 'cursor_move',
                 data: {
@@ -188,9 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   userName: connection.userName,
                   color: connection.color,
                   x: message.data.x,
-                  y: message.data.y,
-                  canvasWidth: message.data.canvasWidth,
-                  canvasHeight: message.data.canvasHeight
+                  y: message.data.y
                 },
                 timestamp: Date.now()
               }, sessionId);
