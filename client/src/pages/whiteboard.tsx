@@ -166,7 +166,7 @@ export default function Whiteboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans overflow-hidden">
+    <div className="h-screen bg-white font-sans overflow-hidden">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 shadow-sm relative z-20">
         <div className="flex items-center justify-between px-4 py-3">
@@ -204,7 +204,7 @@ export default function Whiteboard() {
       </header>
 
       {/* Main Container */}
-      <div className="flex h-screen pt-16">
+      <div className="flex h-[calc(100vh-4rem)]">
         {/* Toolbar */}
         <Toolbar
           tool={tool}
