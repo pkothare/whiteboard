@@ -5,7 +5,7 @@ import Canvas from '@/components/whiteboard/canvas';
 import Toolbar from '@/components/whiteboard/toolbar';
 import UserPanel from '@/components/whiteboard/user-panel';
 import MobileToolbar from '@/components/whiteboard/mobile-toolbar';
-import UserMenu from '@/components/auth/user-menu';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Wifi, WifiOff, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -212,8 +212,7 @@ export default function Whiteboard() {
                 <span className="text-sm text-slate-600">{users.length} users online</span>
               </div>
               
-              {/* User Menu */}
-              {user && <UserMenu user={user} />}
+
             </div>
           </div>
         </div>
