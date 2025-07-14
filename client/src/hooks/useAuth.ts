@@ -25,6 +25,23 @@ export function useAuth() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  const demoLoginMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const response = await apiRequest('/auth/demo-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name }),
+      });
+      return response;
+    },
+    onSuccess: (user) => {
+      queryClient.setQueryData(['auth', 'user'], user);
+      queryClient.invalidateQueries({ queryKey: ['auth'] });
+    },
+  });
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest('/auth/logout', {
@@ -48,15 +65,20 @@ export function useAuth() {
     },
   };
 
+  const loginDemo = (name: string) => {
+    demoLoginMutation.mutate(name);
+  };
+
   const logout = () => {
     logoutMutation.mutate();
   };
 
   return {
     user,
-    isLoading,
+    isLoading: isLoading || demoLoginMutation.isPending,
     isAuthenticated,
     login,
+    loginDemo,
     logout,
     isLoggingOut: logoutMutation.isPending,
   };

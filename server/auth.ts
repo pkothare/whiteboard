@@ -205,6 +205,36 @@ export function setupAuthRoutes(app: Express) {
     });
   });
 
+  // Demo login route
+  app.post('/auth/demo-login', async (req, res) => {
+    try {
+      const { name } = req.body;
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ error: 'Name is required' });
+      }
+
+      // Create a demo user
+      const demoUser = await storage.createUser({
+        email: `demo-${Date.now()}@demo.com`,
+        name: name,
+        avatar: null,
+        provider: 'demo',
+        providerId: `demo-${Date.now()}`,
+      });
+
+      req.logIn(demoUser, (err) => {
+        if (err) {
+          console.error('Demo login error:', err);
+          return res.status(500).json({ error: 'Login failed' });
+        }
+        res.json(demoUser);
+      });
+    } catch (error) {
+      console.error('Demo login error:', error);
+      res.status(500).json({ error: 'Login failed' });
+    }
+  });
+
   // Get current user
   app.get('/auth/user', (req, res) => {
     if (req.isAuthenticated()) {

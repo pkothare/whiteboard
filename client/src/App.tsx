@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Whiteboard from "@/pages/whiteboard";
 import LoginPage from "@/components/auth/login-page";
+import DemoLogin from "@/components/auth/demo-login";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,7 +21,7 @@ function Router() {
   }
 
   if (!user) {
-    return <LoginPage />;
+    return <DemoLogin />;
   }
 
   return (
