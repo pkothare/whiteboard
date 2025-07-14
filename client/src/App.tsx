@@ -27,7 +27,23 @@ function Router() {
     <ErrorBoundary>
       <Switch>
         {!user ? (
-          <Route path="/" component={Landing} />
+          <>
+            <Route path="/" component={Landing} />
+            <Route path="/whiteboard/:sessionId">
+              {(params) => {
+                // Store session ID and redirect to login, then return to session
+                if (params.sessionId) {
+                  // Pass return URL as query parameter to login
+                  const returnTo = encodeURIComponent(`/whiteboard/${params.sessionId}`);
+                  window.location.href = `/api/login?returnTo=${returnTo}`;
+                  return <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>;
+                }
+                return <Landing />;
+              }}
+            </Route>
+          </>
         ) : (
           <>
             <Route path="/" component={Home} />

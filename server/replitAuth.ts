@@ -102,6 +102,12 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
+    // Store return URL if provided
+    const returnTo = req.query.returnTo as string;
+    if (returnTo) {
+      req.session!.returnTo = returnTo;
+    }
+    
     passport.authenticate(`replitauth:${req.hostname}`, {
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
@@ -111,7 +117,18 @@ export async function setupAuth(app: Express) {
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
-    })(req, res, next);
+    })(req, res, (err) => {
+      if (err) {
+        return next(err);
+      }
+      // Check if there's a return URL stored (for session sharing)
+      const returnTo = req.session?.returnTo;
+      if (returnTo) {
+        delete req.session.returnTo;
+        return res.redirect(returnTo);
+      }
+      res.redirect("/");
+    });
   });
 
   app.get("/api/logout", (req, res) => {
