@@ -122,9 +122,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         switch (message.type) {
           case 'user_info':
             // Update user name from client
+            console.log('Received user_info:', message.data?.userName);
             if (message.data?.userName) {
               const connection = connections.get(sessionId);
               if (connection) {
+                console.log('Updating user name from', connection.userName, 'to', message.data.userName);
                 connection.userName = message.data.userName;
                 connections.set(sessionId, connection);
                 
@@ -135,6 +137,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 // Send updated user list
                 await sendUserList();
+                
+                // Notify user that their info was updated
+                ws.send(JSON.stringify({
+                  type: 'user_info_updated',
+                  data: { userName: message.data.userName },
+                  timestamp: Date.now()
+                }));
               }
             }
             break;
@@ -168,18 +177,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             }
             
-            // Broadcast cursor position
-            broadcast({
-              type: 'cursor_move',
-              data: {
-                userId: sessionId,
-                userName,
-                color,
-                x: message.data.x,
-                y: message.data.y
-              },
-              timestamp: Date.now()
-            }, sessionId);
+            // Get current connection info
+            const connection = connections.get(sessionId);
+            if (connection) {
+              // Broadcast cursor position to other users
+              broadcast({
+                type: 'cursor_move',
+                data: {
+                  userId: sessionId,
+                  userName: connection.userName,
+                  color: connection.color,
+                  x: message.data.x,
+                  y: message.data.y
+                },
+                timestamp: Date.now()
+              }, sessionId);
+            }
             break;
             
           case 'clear_canvas':

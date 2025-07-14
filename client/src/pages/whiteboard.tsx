@@ -103,17 +103,20 @@ export default function Whiteboard() {
     onMessage: handleMessage,
     onConnect: () => {
       handleConnect();
-      // Send user info when connected
+      // Send user info when connected (with a slight delay to ensure connection is ready)
       if (user) {
-        const userName = user.firstName && user.lastName 
-          ? `${user.firstName} ${user.lastName}`
-          : user.firstName || user.email?.split('@')[0] || 'Anonymous User';
-        
-        sendMessage({
-          type: 'user_info',
-          data: { userName },
-          timestamp: Date.now(),
-        });
+        setTimeout(() => {
+          const userName = user.firstName && user.lastName 
+            ? `${user.firstName} ${user.lastName}`
+            : user.firstName || user.email?.split('@')[0] || 'Anonymous User';
+          
+          console.log('Sending user info:', userName);
+          sendMessage({
+            type: 'user_info',
+            data: { userName },
+            timestamp: Date.now(),
+          });
+        }, 100);
       }
     },
     onDisconnect: handleDisconnect,
