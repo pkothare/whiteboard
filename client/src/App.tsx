@@ -24,7 +24,7 @@ function Router() {
 
   return (
     <Switch>
-      {isLoading || !user ? (
+      {!user ? (
         <Route path="/" component={Landing} />
       ) : (
         <>
