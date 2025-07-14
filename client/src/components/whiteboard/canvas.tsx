@@ -43,9 +43,15 @@ export default function Canvas({
       const rect = canvas.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
       
+      // Set the actual canvas size in memory (scaled for high DPI)
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
       
+      // Set the display size (CSS pixels)
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      
+      // Scale the drawing context to match device pixel ratio
       ctx.scale(dpr, dpr);
       
       setCanvasSize({ width: rect.width, height: rect.height });
@@ -149,10 +155,11 @@ export default function Canvas({
     const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
     const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
 
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
-    };
+    // Calculate coordinates relative to canvas display size (not actual canvas size)
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    return { x, y };
   };
 
   // Mouse/Touch event handlers
