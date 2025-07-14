@@ -140,11 +140,15 @@ export default function Whiteboard() {
             : user.firstName || user.email?.split('@')[0] || 'Anonymous User';
           
           console.log('Sending user info:', userName);
-          sendMessage({
-            type: 'user_info',
-            data: { userName },
-            timestamp: Date.now(),
-          });
+          try {
+            sendMessage({
+              type: 'user_info',
+              data: { userName },
+              timestamp: Date.now(),
+            });
+          } catch (error) {
+            console.error('Error sending user info:', error);
+          }
         }, 100);
       }
     },
@@ -153,11 +157,15 @@ export default function Whiteboard() {
   });
 
   const handleClearCanvas = useCallback(() => {
-    sendMessage({
-      type: 'clear_canvas',
-      data: {},
-      timestamp: Date.now(),
-    });
+    try {
+      sendMessage({
+        type: 'clear_canvas',
+        data: {},
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      console.error('Error sending clear canvas message:', error);
+    }
   }, [sendMessage]);
 
   const handleSaveCanvas = useCallback(() => {

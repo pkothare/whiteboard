@@ -1,0 +1,41 @@
+client:536 
+ WebSocket connection to 'wss://b62cd42c-e1c1-4756-bf2b-84fb79631aab-00-1nszs9pymvljn.janeway.replit.dev/?token=E8aIuwUubYU_' failed: Error during WebSocket handshake: Unexpected response code: 400
+client:536 
+ Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=E8aIuwUubYU_' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+react-dom.development.js:29895 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+user-menu.tsx:30 
+ Uncaught TypeError: Cannot read properties of undefined (reading 'split')
+    at getInitials (user-menu.tsx:30:8)
+    at UserMenu (user-menu.tsx:43:30)
+user-menu.tsx:30 
+ Uncaught TypeError: Cannot read properties of undefined (reading 'split')
+    at getInitials (user-menu.tsx:30:8)
+    at UserMenu (user-menu.tsx:43:30)
+react-dom.development.js:18704 
+ The above error occurred in the <UserMenu> component:
+
+    at UserMenu (https://b62cd42c-e1c1-4756-bf2b-84fb79631aab-00-1nszs9pymvljn.janeway.replit.dev/src/components/auth/user-menu.tsx:30:36)
+    at div
+    at div
+    at div
+    at header
+    at div
+    at Whiteboard (https://b62cd42c-e1c1-4756-bf2b-84fb79631aab-00-1nszs9pymvljn.janeway.replit.dev/src/pages/whiteboard.tsx:34:31)
+    at Route (https://b62cd42c-e1c1-4756-bf2b-84fb79631aab-00-1nszs9pymvljn.janeway.repli…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=1eed5da0:323:16)
+    at Switch (https://b62cd42c-e1c1-4756-bf2b-84fb79631aab-00-1nszs9pymvljn.janeway.repli…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=1eed5da0:379:17)
+    at Router (https://b62cd42c-e1c1-4756-bf2b-84fb79631aab-00-1nszs9pymvljn.janeway.replit.dev/src/App.tsx?v=V46vLmDXJNyWEf6yYFmeZ:30:31)
+    at Provider (https://b62cd42c-e1c1-4756-bf2b-84fb79631aab-00-1nszs9pymvljn.janeway.repli…unner/workspace/node_modules/.vite/deps/chunk-BCLB22GG.js?v=1eed5da0:22:15)
+    at TooltipProvider (https://b62cd42c-e1c1-4756-bf2b-84fb79631aab-00-1nszs9pymvljn.janeway.repli…rkspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=1eed5da0:54:5)
+    at QueryClientProvider (https://b62cd42c-e1c1-4756-bf2b-84fb79631aab-00-1nszs9pymvljn.janeway.repli…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=1eed5da0:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+react-dom.development.js:12056 
+ Uncaught TypeError: Cannot read properties of undefined (reading 'split')
+    at getInitials (user-menu.tsx:30:8)
+    at UserMenu (user-menu.tsx:43:30)
+﻿

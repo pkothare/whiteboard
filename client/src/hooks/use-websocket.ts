@@ -29,7 +29,10 @@ export function useWebSocket({
     }
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const host = window.location.host;
+    const wsUrl = `${protocol}//${host}/ws`;
+    
+    console.log('Attempting WebSocket connection to:', wsUrl);
     
     try {
       isConnectingRef.current = true;
@@ -63,6 +66,7 @@ export function useWebSocket({
       wsRef.current.onerror = (error) => {
         isConnectingRef.current = false;
         setConnectionStatus('error');
+        console.error('WebSocket error:', error);
         onError?.(error);
       };
 
@@ -78,6 +82,7 @@ export function useWebSocket({
       isConnectingRef.current = false;
       console.error('Error creating WebSocket connection:', error);
       setConnectionStatus('error');
+      onError?.(error as Event);
     }
   }, [onMessage, onConnect, onDisconnect, onError]);
 
