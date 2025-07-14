@@ -71,12 +71,27 @@ export default function Whiteboard() {
         if (message.data) {
           setUserCursors(prev => {
             const filtered = prev.filter(c => c.userId !== message.data.userId);
+            
+            // Scale cursor position to local canvas dimensions if needed
+            let scaledX = message.data.x;
+            let scaledY = message.data.y;
+            
+            // If sender's canvas dimensions are provided, scale to our canvas size
+            if (message.data.canvasWidth && message.data.canvasHeight) {
+              const canvas = document.querySelector('canvas');
+              if (canvas) {
+                const localRect = canvas.getBoundingClientRect();
+                scaledX = (message.data.x / message.data.canvasWidth) * localRect.width;
+                scaledY = (message.data.y / message.data.canvasHeight) * localRect.height;
+              }
+            }
+            
             return [...filtered, {
               userId: message.data.userId,
               userName: message.data.userName,
               color: message.data.color,
-              x: message.data.x,
-              y: message.data.y,
+              x: scaledX,
+              y: scaledY,
             }];
           });
         }
