@@ -3,7 +3,7 @@ import { useWebSocket } from '@/hooks/use-websocket';
 import { useAuth } from '@/hooks/useAuth';
 import Canvas from '@/components/whiteboard/canvas';
 import Toolbar from '@/components/whiteboard/toolbar';
-import UserPanel from '@/components/whiteboard/user-panel';
+
 import MobileToolbar from '@/components/whiteboard/mobile-toolbar';
 import UserMenu from '@/components/auth/user-menu';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -266,8 +266,7 @@ export default function Whiteboard() {
           </div>
         </div>
 
-        {/* User Panel */}
-        <UserPanel users={users} currentUserId={currentUser?.userId} />
+
       </div>
 
       {/* Mobile Toolbar */}
