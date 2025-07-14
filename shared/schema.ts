@@ -1,14 +1,28 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  name: text("name").notNull(),
-  avatar: text("avatar"),
-  provider: text("provider").notNull(), // 'google' or 'apple' or 'email'
-  providerId: text("provider_id").notNull(),
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  name: varchar("name"),
+  avatar: varchar("avatar"),
+  provider: varchar("provider"),
+  providerId: varchar("provider_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -24,13 +38,7 @@ export const whiteboardUsers = pgTable("whiteboard_users", {
   cursorY: integer("cursor_y").default(0),
 });
 
-// Sessions table for authentication
-export const sessions = pgTable("sessions", {
-  id: text("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+
 
 export const drawingStrokes = pgTable("drawing_strokes", {
   id: serial("id").primaryKey(),
@@ -56,14 +64,9 @@ export const insertDrawingStrokeSchema = createInsertSchema(drawingStrokes).omit
   timestamp: true,
 });
 
-export const insertSessionSchema = createInsertSchema(sessions).omit({
-  createdAt: true,
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
-export type Session = typeof sessions.$inferSelect;
-export type InsertSession = z.infer<typeof insertSessionSchema>;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type WhiteboardUser = typeof whiteboardUsers.$inferSelect;
 export type InsertWhiteboardUser = z.infer<typeof insertWhiteboardUserSchema>;
 export type DrawingStroke = typeof drawingStrokes.$inferSelect;

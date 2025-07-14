@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { WSMessage, type CursorData, type StrokeData } from "@shared/schema";
-import { sessionMiddleware, configurePassport, setupAuthRoutes, requireAuth } from "./auth";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 const userColors = [
   '#EF4444', '#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899',
@@ -13,10 +13,8 @@ const userColors = [
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
-  // Setup authentication
-  configurePassport();
-  app.use(sessionMiddleware);
-  setupAuthRoutes(app);
+  // Setup Replit authentication
+  await setupAuth(app);
   
   // WebSocket server setup
   const wss = new WebSocketServer({ 
@@ -203,6 +201,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('error', (error) => {
       console.error('WebSocket error:', error);
     });
+  });
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
   });
 
   // REST API endpoints

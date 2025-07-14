@@ -1,17 +1,13 @@
-import { users, sessions, whiteboardUsers, drawingStrokes, type User, type InsertUser, type Session, type InsertSession, type WhiteboardUser, type InsertWhiteboardUser, type DrawingStroke, type InsertDrawingStroke } from "@shared/schema";
+import { users, whiteboardUsers, drawingStrokes, type User, type InsertUser, type UpsertUser, type WhiteboardUser, type InsertWhiteboardUser, type DrawingStroke, type InsertDrawingStroke } from "@shared/schema";
 
 export interface IStorage {
-  // User methods
-  getUser(id: number): Promise<User | undefined>;
+  // User methods for Replit Auth
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByProviderId(provider: string, providerId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
-  
-  // Session methods
-  createSession(session: InsertSession): Promise<Session>;
-  getSession(id: string): Promise<Session | undefined>;
-  deleteSession(id: string): Promise<void>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   
   // Whiteboard user methods
   getWhiteboardUser(sessionId: string): Promise<WhiteboardUser | undefined>;
@@ -27,8 +23,7 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private sessions: Map<string, Session>;
+  private users: Map<string, User>;
   private whiteboardUsers: Map<string, WhiteboardUser>;
   private drawingStrokes: Map<number, DrawingStroke>;
   private currentUserId: number;
@@ -37,7 +32,6 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
-    this.sessions = new Map();
     this.whiteboardUsers = new Map();
     this.drawingStrokes = new Map();
     this.currentUserId = 1;
@@ -45,8 +39,42 @@ export class MemStorage implements IStorage {
     this.currentStrokeId = 1;
   }
 
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const existingUser = this.users.get(userData.id!);
+    if (existingUser) {
+      // Update existing user
+      const updatedUser: User = { 
+        ...existingUser, 
+        ...userData, 
+        id: userData.id!,
+        email: userData.email || null,
+        name: userData.name || null,
+        avatar: userData.avatar || null,
+        provider: userData.provider || null,
+        providerId: userData.providerId || null,
+        updatedAt: new Date() 
+      };
+      this.users.set(userData.id!, updatedUser);
+      return updatedUser;
+    } else {
+      // Create new user
+      const newUser: User = {
+        id: userData.id!,
+        email: userData.email || null,
+        name: userData.name || null,
+        avatar: userData.avatar || null,
+        provider: userData.provider || null,
+        providerId: userData.providerId || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.users.set(userData.id!, newUser);
+      return newUser;
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
@@ -62,42 +90,29 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
+    const userId = `demo-${this.currentUserId++}`;
     const user: User = { 
-      ...insertUser, 
-      id, 
+      id: userId,
+      email: insertUser.email || null,
+      name: insertUser.name || null,
       avatar: insertUser.avatar || null,
+      provider: insertUser.provider || null,
+      providerId: insertUser.providerId || null,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
-    this.users.set(id, user);
+    this.users.set(user.id, user);
     return user;
   }
 
-  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     const user = this.users.get(id);
-    if (!user) return undefined;
-    
-    const updatedUser = { ...user, ...updates, updatedAt: new Date() };
-    this.users.set(id, updatedUser);
-    return updatedUser;
-  }
-
-  async createSession(insertSession: InsertSession): Promise<Session> {
-    const session: Session = {
-      ...insertSession,
-      createdAt: new Date(),
-    };
-    this.sessions.set(session.id, session);
-    return session;
-  }
-
-  async getSession(id: string): Promise<Session | undefined> {
-    return this.sessions.get(id);
-  }
-
-  async deleteSession(id: string): Promise<void> {
-    this.sessions.delete(id);
+    if (user) {
+      const updatedUser = { ...user, ...updates, updatedAt: new Date() };
+      this.users.set(id, updatedUser);
+      return updatedUser;
+    }
+    return undefined;
   }
 
   async getWhiteboardUser(sessionId: string): Promise<WhiteboardUser | undefined> {
@@ -132,7 +147,7 @@ export class MemStorage implements IStorage {
   }
 
   async getActiveWhiteboardUsers(): Promise<WhiteboardUser[]> {
-    return Array.from(this.whiteboardUsers.values()).filter(user => user.isActive);
+    return Array.from(this.whiteboardUsers.values()).filter((user) => user.isActive);
   }
 
   async saveDrawingStroke(insertStroke: InsertDrawingStroke): Promise<DrawingStroke> {

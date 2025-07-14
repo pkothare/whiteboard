@@ -7,7 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 import Whiteboard from "@/pages/whiteboard";
 import LoginPage from "@/components/auth/login-page";
 import DemoLogin from "@/components/auth/demo-login";
-import OAuthLogin from "@/components/auth/oauth-login";
+import Landing from "@/components/auth/landing";
+import Home from "@/components/auth/home";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,13 +22,16 @@ function Router() {
     );
   }
 
-  if (!user) {
-    return <OAuthLogin />;
-  }
-
   return (
     <Switch>
-      <Route path="/" component={Whiteboard} />
+      {isLoading || !user ? (
+        <Route path="/" component={Landing} />
+      ) : (
+        <>
+          <Route path="/" component={Home} />
+          <Route path="/whiteboard" component={Whiteboard} />
+        </>
+      )}
       <Route component={NotFound} />
     </Switch>
   );
