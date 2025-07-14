@@ -27,18 +27,36 @@ export function useAuth() {
 
   const demoLoginMutation = useMutation({
     mutationFn: async (name: string) => {
-      const response = await apiRequest('/auth/demo-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name }),
-      });
-      return response;
+      console.log('Making demo login request for:', name);
+      try {
+        const response = await fetch('/auth/demo-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name }),
+          credentials: 'same-origin'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Demo login response:', data);
+        return data;
+      } catch (error) {
+        console.error('Demo login error:', error);
+        throw error;
+      }
     },
     onSuccess: (user) => {
+      console.log('Demo login successful, setting user:', user);
       queryClient.setQueryData(['auth', 'user'], user);
       queryClient.invalidateQueries({ queryKey: ['auth'] });
+    },
+    onError: (error) => {
+      console.error('Demo login mutation error:', error);
     },
   });
 

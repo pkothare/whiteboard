@@ -208,11 +208,14 @@ export function setupAuthRoutes(app: Express) {
   // Demo login route
   app.post('/auth/demo-login', async (req, res) => {
     try {
+      console.log('Demo login request received:', req.body);
       const { name } = req.body;
       if (!name || typeof name !== 'string') {
+        console.log('Invalid name provided:', name);
         return res.status(400).json({ error: 'Name is required' });
       }
 
+      console.log('Creating demo user with name:', name);
       // Create a demo user
       const demoUser = await storage.createUser({
         email: `demo-${Date.now()}@demo.com`,
@@ -222,11 +225,14 @@ export function setupAuthRoutes(app: Express) {
         providerId: `demo-${Date.now()}`,
       });
 
+      console.log('Demo user created:', demoUser);
+
       req.logIn(demoUser, (err) => {
         if (err) {
           console.error('Demo login error:', err);
           return res.status(500).json({ error: 'Login failed' });
         }
+        console.log('Demo user logged in successfully:', demoUser.name);
         res.json(demoUser);
       });
     } catch (error) {

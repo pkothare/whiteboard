@@ -11,7 +11,9 @@ export default function DemoLogin() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with name:', name.trim());
     if (name.trim()) {
+      console.log('Calling loginDemo...');
       loginDemo(name.trim());
     }
   };
