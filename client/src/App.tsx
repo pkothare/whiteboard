@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Whiteboard from "@/pages/whiteboard";
 import LoginPage from "@/components/auth/login-page";
 import DemoLogin from "@/components/auth/demo-login";
+import OAuthLogin from "@/components/auth/oauth-login";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,7 +22,7 @@ function Router() {
   }
 
   if (!user) {
-    return <DemoLogin />;
+    return <OAuthLogin />;
   }
 
   return (
