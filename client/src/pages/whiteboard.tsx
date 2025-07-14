@@ -9,7 +9,7 @@ import MobileToolbar from '@/components/whiteboard/mobile-toolbar';
 import UserMenu from '@/components/auth/user-menu';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Wifi, WifiOff, ChevronRight, Copy, Check, Share2 } from 'lucide-react';
+import { AlertCircle, Wifi, WifiOff, ChevronRight, Copy, Check, Share2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WSMessage, type CursorData } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
@@ -22,8 +22,23 @@ interface User {
 }
 
 export default function Whiteboard() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { sessionId } = useParams<{ sessionId?: string }>();
+  
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  // Redirect to login if not authenticated
+  if (!user) {
+    window.location.href = '/api/login';
+    return null;
+  }
   const { toast } = useToast();
   const [tool, setTool] = useState<'pen' | 'eraser' | 'select'>('pen');
   const [color, setColor] = useState('#3B82F6');
