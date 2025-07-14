@@ -105,6 +105,7 @@ export async function setupAuth(app: Express) {
     // Store return URL if provided
     const returnTo = req.query.returnTo as string;
     if (returnTo) {
+      console.log('Storing returnTo in session:', returnTo);
       req.session!.returnTo = returnTo;
     }
     
@@ -114,21 +115,31 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
-    })(req, res, (err) => {
+    passport.authenticate(`replitauth:${req.hostname}`, (err, user) => {
       if (err) {
         return next(err);
       }
-      // Check if there's a return URL stored (for session sharing)
-      const returnTo = req.session?.returnTo;
-      if (returnTo) {
-        delete req.session.returnTo;
-        return res.redirect(returnTo);
+      if (!user) {
+        return res.redirect("/api/login");
       }
-      res.redirect("/");
-    });
+      
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
+        
+        // Check if there's a return URL stored (for session sharing)
+        const returnTo = req.session?.returnTo;
+        if (returnTo) {
+          delete req.session.returnTo;
+          console.log('Redirecting to stored returnTo:', returnTo);
+          return res.redirect(returnTo);
+        }
+        
+        console.log('No returnTo found, redirecting to home');
+        res.redirect("/");
+      });
+    })(req, res, next);
   });
 
   app.get("/api/logout", (req, res) => {
