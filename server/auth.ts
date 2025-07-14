@@ -16,6 +16,8 @@ export const sessionStore = new PgSession({
   createTableIfMissing: true,
 });
 
+console.log('Session store configured with database URL:', process.env.DATABASE_URL ? 'Present' : 'Missing');
+
 // Configure session middleware
 export const sessionMiddleware = session({
   store: sessionStore,
@@ -23,11 +25,13 @@ export const sessionMiddleware = session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false for development
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
   },
 });
+
+console.log('Session middleware configured with secret:', process.env.SESSION_SECRET ? 'Present' : 'Missing');
 
 // Passport configuration
 export function configurePassport() {
