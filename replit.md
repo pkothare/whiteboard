@@ -29,6 +29,11 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Fixed**: Cursor positioning alignment with drawing coordinates
 - ✅ **Simplified**: Coordinate system to use identical calculations for cursors and drawing
 - ✅ **Confirmed**: Cursor dots now align perfectly with actual drawing positions
+- ✅ **Implemented**: Session-based URL system for whiteboard sharing
+- ✅ **Added**: Session creation with custom names from home page
+- ✅ **Created**: Shareable URLs with unique session IDs
+- ✅ **Added**: Share button with copy-to-clipboard functionality
+- ✅ **Completed**: Session management and routing system
 
 ## System Architecture
 
@@ -52,7 +57,9 @@ Preferred communication style: Simple, everyday language.
 ## Key Components
 
 ### Database Schema
-- **users**: Basic user authentication (currently unused)
+- **users**: User authentication with Replit Auth integration
+- **sessions**: PostgreSQL session storage for Replit Auth
+- **whiteboard_sessions**: Named whiteboard sessions with unique IDs
 - **whiteboard_users**: Active session users with cursor positions
 - **drawing_strokes**: Persistent storage of drawing data
 
@@ -61,6 +68,8 @@ Preferred communication style: Simple, everyday language.
 - **Live Cursor Tracking**: Real-time cursor position updates
 - **Drawing Synchronization**: Stroke data broadcast to all connected users
 - **User Presence**: Join/leave notifications with colored user indicators
+- **Session Sharing**: Shareable URLs for collaborative sessions
+- **Session Management**: Create, join, and share named whiteboard sessions
 
 ### Drawing Engine
 - **Canvas API**: HTML5 Canvas for drawing operations
