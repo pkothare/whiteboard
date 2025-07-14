@@ -132,9 +132,16 @@ export function configurePassport() {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
-      done(null, user);
+      if (user) {
+        done(null, user);
+      } else {
+        // Don't throw error for missing users, just return null
+        done(null, null);
+      }
     } catch (error) {
-      done(error, null);
+      console.error('Error deserializing user:', error);
+      // Don't throw error, just return null for invalid sessions
+      done(null, null);
     }
   });
 }

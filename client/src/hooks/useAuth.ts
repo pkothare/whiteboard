@@ -1,27 +1,31 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import type { User } from '@shared/schema';
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 
 export function useAuth() {
-  const queryClient = useQueryClient();
-
-  const { data: user, isLoading, error } = useQuery<User | null>({
+  const { data: user, isLoading } = useQuery({
     queryKey: ['auth', 'user'],
     queryFn: async () => {
       try {
-        const response = await fetch('/auth/user');
-        if (!response.ok) {
-          if (response.status === 401) {
-            return null;
-          }
-          throw new Error('Failed to fetch user');
+        const response = await fetch('/auth/user', {
+          credentials: 'same-origin'
+        });
+        
+        if (response.status === 401) {
+          return null; // User not authenticated
         }
-        return response.json();
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
       } catch (error) {
+        console.error('Auth check error:', error);
         return null;
       }
     },
     retry: false,
+    refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -62,9 +66,16 @@ export function useAuth() {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest('/auth/logout', {
+      const response = await fetch('/auth/logout', {
         method: 'POST',
+        credentials: 'same-origin'
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.setQueryData(['auth', 'user'], null);
@@ -72,32 +83,13 @@ export function useAuth() {
     },
   });
 
-  const isAuthenticated = !!user;
-
-  const login = {
-    google: () => {
-      window.location.href = '/auth/google';
-    },
-    apple: () => {
-      window.location.href = '/auth/apple';
-    },
-  };
-
-  const loginDemo = (name: string) => {
-    demoLoginMutation.mutate(name);
-  };
-
-  const logout = () => {
-    logoutMutation.mutate();
-  };
-
   return {
     user,
-    isLoading: isLoading || demoLoginMutation.isPending,
-    isAuthenticated,
-    login,
-    loginDemo,
-    logout,
-    isLoggingOut: logoutMutation.isPending,
+    isLoading,
+    isAuthenticated: !!user,
+    loginDemo: demoLoginMutation.mutate,
+    logout: logoutMutation.mutate,
+    isDemoLoginLoading: demoLoginMutation.isPending,
+    isLogoutLoading: logoutMutation.isPending,
   };
 }
