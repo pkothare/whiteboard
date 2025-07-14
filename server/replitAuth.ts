@@ -60,10 +60,9 @@ async function upsertUser(
   await storage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
-    name: claims["first_name"] ? `${claims["first_name"]} ${claims["last_name"] || ''}`.trim() : 'Replit User',
-    avatar: claims["profile_image_url"],
-    provider: 'replit',
-    providerId: claims["sub"],
+    firstName: claims["first_name"],
+    lastName: claims["last_name"],
+    profileImageUrl: claims["profile_image_url"],
   });
 }
 
@@ -104,7 +103,6 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/login", (req, res, next) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
