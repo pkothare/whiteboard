@@ -199,12 +199,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Clear all strokes
             await storage.clearDrawingStrokes();
             
-            // Broadcast clear command
+            // Broadcast clear command to ALL users (including sender)
             broadcast({
               type: 'clear_canvas',
               data: { userId: sessionId },
               timestamp: Date.now()
-            }, sessionId);
+            }); // Don't exclude sender so their canvas clears too
             break;
         }
       } catch (error) {

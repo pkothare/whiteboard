@@ -74,7 +74,7 @@ export type InsertDrawingStroke = z.infer<typeof insertDrawingStrokeSchema>;
 
 // WebSocket message types
 export interface WSMessage {
-  type: 'user_joined' | 'user_left' | 'stroke_start' | 'stroke_move' | 'stroke_end' | 'cursor_move' | 'clear_canvas' | 'user_list' | 'user_info';
+  type: 'user_joined' | 'user_left' | 'stroke_start' | 'stroke_move' | 'stroke_end' | 'cursor_move' | 'clear_canvas' | 'user_list' | 'user_info' | 'user_info_updated' | 'init';
   data: any;
   userId?: string;
   timestamp?: number;

@@ -134,10 +134,15 @@ export default function Canvas({
   };
 
   const clearCanvas = () => {
+    const canvas = canvasRef.current;
     const ctx = ctxRef.current;
-    if (!ctx || !canvasRef.current) return;
+    if (!ctx || !canvas) return;
 
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    // Clear the entire canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Reset any drawing state
+    ctx.beginPath();
   };
 
   const loadStrokes = (strokes: any[]) => {
