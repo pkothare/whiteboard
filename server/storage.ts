@@ -59,10 +59,9 @@ export class MemStorage implements IStorage {
         ...userData, 
         id: userData.id!,
         email: userData.email || null,
-        name: userData.name || null,
-        avatar: userData.avatar || null,
-        provider: userData.provider || null,
-        providerId: userData.providerId || null,
+        firstName: userData.firstName || null,
+        lastName: userData.lastName || null,
+        profileImageUrl: userData.profileImageUrl || null,
         updatedAt: new Date() 
       };
       this.users.set(userData.id!, updatedUser);
@@ -72,10 +71,9 @@ export class MemStorage implements IStorage {
       const newUser: User = {
         id: userData.id!,
         email: userData.email || null,
-        name: userData.name || null,
-        avatar: userData.avatar || null,
-        provider: userData.provider || null,
-        providerId: userData.providerId || null,
+        firstName: userData.firstName || null,
+        lastName: userData.lastName || null,
+        profileImageUrl: userData.profileImageUrl || null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -91,9 +89,8 @@ export class MemStorage implements IStorage {
   }
 
   async getUserByProviderId(provider: string, providerId: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.provider === provider && user.providerId === providerId,
-    );
+    // This method is not used with Replit Auth but kept for interface compatibility
+    return undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -101,10 +98,9 @@ export class MemStorage implements IStorage {
     const user: User = { 
       id: userId,
       email: insertUser.email || null,
-      name: insertUser.name || null,
-      avatar: insertUser.avatar || null,
-      provider: insertUser.provider || null,
-      providerId: insertUser.providerId || null,
+      firstName: insertUser.firstName || null,
+      lastName: insertUser.lastName || null,
+      profileImageUrl: insertUser.profileImageUrl || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
