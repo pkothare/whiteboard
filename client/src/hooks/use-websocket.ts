@@ -15,14 +15,16 @@ export function useWebSocket({
   onError,
 }: UseWebSocketProps = {}) {
   const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
+  const maxReconnectAttempts = 3;
+  const isConnectingRef = useRef(false);
 
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+    // Prevent multiple simultaneous connection attempts
+    if (isConnectingRef.current || wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
 
@@ -30,31 +32,36 @@ export function useWebSocket({
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     
     try {
-      wsRef.current = new WebSocket(wsUrl);
+      isConnectingRef.current = true;
       setConnectionStatus('connecting');
+      
+      wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
+        isConnectingRef.current = false;
         setIsConnected(true);
         setConnectionStatus('connected');
         reconnectAttempts.current = 0;
         onConnect?.();
       };
 
-      wsRef.current.onclose = () => {
+      wsRef.current.onclose = (event) => {
+        isConnectingRef.current = false;
         setIsConnected(false);
         setConnectionStatus('disconnected');
         onDisconnect?.();
         
-        // Attempt to reconnect
-        if (reconnectAttempts.current < maxReconnectAttempts) {
+        // Only reconnect on unexpected closures and within attempt limit
+        if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++;
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
-          }, Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000));
+          }, Math.min(2000 * Math.pow(2, reconnectAttempts.current), 10000));
         }
       };
 
       wsRef.current.onerror = (error) => {
+        isConnectingRef.current = false;
         setConnectionStatus('error');
         onError?.(error);
       };
@@ -68,18 +75,26 @@ export function useWebSocket({
         }
       };
     } catch (error) {
+      isConnectingRef.current = false;
       console.error('Error creating WebSocket connection:', error);
       setConnectionStatus('error');
     }
   }, [onMessage, onConnect, onDisconnect, onError]);
 
   const disconnect = useCallback(() => {
+    // Clear any pending reconnection attempts
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
     
+    // Reset connection state
+    isConnectingRef.current = false;
+    reconnectAttempts.current = 0;
+    
+    // Close WebSocket connection
     if (wsRef.current) {
-      wsRef.current.close();
+      wsRef.current.close(1000, 'Disconnecting');
       wsRef.current = null;
     }
     
@@ -99,7 +114,7 @@ export function useWebSocket({
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, []);
 
   return {
     isConnected,
