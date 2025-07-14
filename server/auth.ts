@@ -44,9 +44,16 @@ export function configurePassport() {
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
+            console.log('OAuth profile received:', {
+              id: profile.id,
+              email: profile.emails?.[0]?.value,
+              name: profile.displayName
+            });
+            
             let user = await storage.getUserByProviderId('google', profile.id);
             
             if (!user) {
+              console.log('Creating new user...');
               // Create new user
               user = await storage.createUser({
                 email: profile.emails?.[0]?.value || '',
@@ -55,7 +62,9 @@ export function configurePassport() {
                 provider: 'google',
                 providerId: profile.id,
               });
+              console.log('New user created:', user.id);
             } else {
+              console.log('Existing user found, updating...');
               // Update existing user with latest profile info
               user = await storage.updateUser(user.id, {
                 name: profile.displayName || user.name,
@@ -65,6 +74,7 @@ export function configurePassport() {
             
             return done(null, user);
           } catch (error) {
+            console.error('OAuth strategy error:', error);
             return done(error, null);
           }
         }
@@ -150,9 +160,24 @@ export function setupAuthRoutes(app: Express) {
   app.get('/auth/google/callback',
     (req, res, next) => {
       console.log('Google OAuth callback received');
-      passport.authenticate('google', { 
-        failureRedirect: '/login',
-        successRedirect: '/'
+      console.log('Query params:', req.query);
+      passport.authenticate('google', (err, user, info) => {
+        if (err) {
+          console.error('OAuth error:', err);
+          return res.redirect('/?error=oauth_error');
+        }
+        if (!user) {
+          console.error('OAuth failed, no user:', info);
+          return res.redirect('/?error=oauth_failed');
+        }
+        req.logIn(user, (err) => {
+          if (err) {
+            console.error('Login error:', err);
+            return res.redirect('/?error=login_error');
+          }
+          console.log('User successfully authenticated:', user.email);
+          return res.redirect('/');
+        });
       })(req, res, next);
     }
   );
