@@ -42,32 +42,16 @@ export function useAuth() {
     },
   });
 
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/auth/logout', {
-        method: 'POST',
-        credentials: 'same-origin'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(['auth', 'user'], null);
-      queryClient.invalidateQueries({ queryKey: ['auth'] });
-    },
-  });
+  const logout = () => {
+    window.location.href = '/api/logout';
+  };
 
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
     loginDemo: demoLoginMutation.mutate,
-    logout: logoutMutation.mutate,
+    logout,
     isDemoLoginLoading: demoLoginMutation.isPending,
-    isLogoutLoading: logoutMutation.isPending,
   };
 }

@@ -17,7 +17,7 @@ interface UserMenuProps {
 }
 
 export default function UserMenu({ user }: UserMenuProps) {
-  const { logout, isLoggingOut } = useAuth();
+  const { logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = () => {
@@ -59,9 +59,9 @@ export default function UserMenu({ user }: UserMenuProps) {
           <span>Profile</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
+        <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>{isLoggingOut ? 'Signing out...' : 'Sign out'}</span>
+          <span>Sign out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
