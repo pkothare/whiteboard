@@ -44,6 +44,7 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Updated**: Coordinate system to handle world vs screen coordinates
 - ✅ **Fixed**: User cursor positioning for zoomed/panned canvas
 - ✅ **Added**: Zoom indicator with usage hints
+- ✅ **Fixed**: Smooth zoom with 1% increments per scroll wheel step
 
 ## System Architecture
 

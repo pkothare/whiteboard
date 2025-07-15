@@ -452,9 +452,9 @@ export default function Canvas({
     const screenCoords = getScreenCoordinates(event);
     const worldCoords = screenToWorld(screenCoords.x, screenCoords.y);
     
-    // Zoom factor
-    const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.max(0.1, Math.min(5, viewport.zoom * zoomFactor));
+    // Smooth 1% zoom increments
+    const zoomDelta = event.deltaY > 0 ? -0.01 : 0.01;
+    const newZoom = Math.max(0.1, Math.min(5, viewport.zoom + zoomDelta));
     
     // Calculate new viewport position to zoom towards mouse
     const newX = worldCoords.x - (screenCoords.x / newZoom);
