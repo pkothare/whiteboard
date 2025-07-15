@@ -31,11 +31,11 @@ function Router() {
             <Route path="/" component={Landing} />
             <Route path="/whiteboard/:sessionId">
               {(params) => {
-                // Store session ID and redirect to login, then return to session
+                // Store session ID in localStorage and redirect to login
                 if (params.sessionId) {
-                  // Pass return URL as query parameter to login
-                  const returnTo = encodeURIComponent(`/whiteboard/${params.sessionId}`);
-                  window.location.href = `/api/login?returnTo=${returnTo}`;
+                  // Store the intended session in localStorage for after auth
+                  localStorage.setItem('pendingSessionId', params.sessionId);
+                  window.location.href = '/api/login';
                   return <div className="min-h-screen bg-slate-50 flex items-center justify-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                   </div>;

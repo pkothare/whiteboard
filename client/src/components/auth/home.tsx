@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,13 +8,25 @@ import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, Check, ExternalLink } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 export default function Home() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [sessionName, setSessionName] = useState('');
   const [createdSession, setCreatedSession] = useState<{ id: string; name: string } | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Check for pending session redirect after authentication
+  useEffect(() => {
+    const pendingSessionId = localStorage.getItem('pendingSessionId');
+    if (pendingSessionId) {
+      localStorage.removeItem('pendingSessionId');
+      console.log('Redirecting to pending session:', pendingSessionId);
+      setLocation(`/whiteboard/${pendingSessionId}`);
+    }
+  }, [setLocation]);
 
   const createSessionMutation = useMutation({
     mutationFn: async (name: string) => {

@@ -34,12 +34,14 @@ export function getSession() {
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Force session save
+    saveUninitialized: true, // Save uninitialized sessions
+    rolling: true, // Reset cookie on each request
     cookie: {
       httpOnly: true,
       secure: true,
       maxAge: sessionTtl,
+      sameSite: 'lax', // Allow cross-site requests during OAuth
     },
   });
 }
@@ -107,26 +109,46 @@ export async function setupAuth(app: Express) {
     if (returnTo) {
       console.log('Storing returnTo in session:', returnTo);
       req.session!.returnTo = returnTo;
+      // Force session save before redirect
+      req.session.save((err) => {
+        if (err) {
+          console.error('Error saving session:', err);
+          return next(err);
+        }
+        console.log('Session saved successfully with returnTo:', returnTo);
+        passport.authenticate(`replitauth:${req.hostname}`, {
+          scope: ["openid", "email", "profile", "offline_access"],
+        })(req, res, next);
+      });
+    } else {
+      passport.authenticate(`replitauth:${req.hostname}`, {
+        scope: ["openid", "email", "profile", "offline_access"],
+      })(req, res, next);
     }
-    
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
+    console.log('Callback received, session ID:', req.sessionID);
+    console.log('Session returnTo before auth:', req.session?.returnTo);
+    
     passport.authenticate(`replitauth:${req.hostname}`, (err, user) => {
       if (err) {
+        console.error('Authentication error:', err);
         return next(err);
       }
       if (!user) {
+        console.log('No user found, redirecting to login');
         return res.redirect("/api/login");
       }
       
       req.logIn(user, (err) => {
         if (err) {
+          console.error('Login error:', err);
           return next(err);
         }
+        
+        console.log('User logged in successfully, checking returnTo');
+        console.log('Session returnTo after login:', req.session?.returnTo);
         
         // Check if there's a return URL stored (for session sharing)
         const returnTo = req.session?.returnTo;
