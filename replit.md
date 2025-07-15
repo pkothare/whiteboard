@@ -45,6 +45,7 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Fixed**: User cursor positioning for zoomed/panned canvas
 - ✅ **Added**: Zoom indicator with usage hints
 - ✅ **Fixed**: Smooth zoom with 1% increments per scroll wheel step
+- ✅ **Fixed**: Stable zoom centering to prevent canvas thrashing during zoom
 
 ## System Architecture
 

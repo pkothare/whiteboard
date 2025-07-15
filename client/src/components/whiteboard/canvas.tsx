@@ -449,16 +449,29 @@ export default function Canvas({
   const handleWheel = useCallback((event: React.WheelEvent) => {
     event.preventDefault();
     
-    const screenCoords = getScreenCoordinates(event);
-    const worldCoords = screenToWorld(screenCoords.x, screenCoords.y);
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
     
-    // Smooth 1% zoom increments
+    // Get mouse position relative to canvas center
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    // Calculate zoom change
     const zoomDelta = event.deltaY > 0 ? -0.01 : 0.01;
-    const newZoom = Math.max(0.1, Math.min(5, viewport.zoom + zoomDelta));
+    const oldZoom = viewport.zoom;
+    const newZoom = Math.max(0.1, Math.min(5, oldZoom + zoomDelta));
     
-    // Calculate new viewport position to zoom towards mouse
-    const newX = worldCoords.x - (screenCoords.x / newZoom);
-    const newY = worldCoords.y - (screenCoords.y / newZoom);
+    if (newZoom === oldZoom) return; // No change in zoom
+    
+    // Calculate the point in world coordinates that should stay under the mouse
+    const worldX = viewport.x + mouseX / oldZoom;
+    const worldY = viewport.y + mouseY / oldZoom;
+    
+    // Calculate new viewport position to keep the world point under the mouse
+    const newX = worldX - mouseX / newZoom;
+    const newY = worldY - mouseY / newZoom;
     
     setViewport({
       x: newX,
@@ -468,7 +481,7 @@ export default function Canvas({
     
     // Redraw with new zoom
     setTimeout(() => redrawCanvas(), 0);
-  }, [viewport, screenToWorld, redrawCanvas]);
+  }, [viewport, redrawCanvas]);
 
   // Get cursor style based on tool
   const getCursorStyle = () => {
