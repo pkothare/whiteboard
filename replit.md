@@ -47,6 +47,7 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Fixed**: Smooth zoom with 1% increments per scroll wheel step
 - ✅ **Fixed**: Stable zoom centering to prevent canvas thrashing during zoom
 - ✅ **Fixed**: Proportional zoom that centers around canvas center for consistent behavior
+- ✅ **Fixed**: Viewport transformation to prevent drawing drift during zoom operations
 
 ## System Architecture
 

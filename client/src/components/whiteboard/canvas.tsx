@@ -98,7 +98,7 @@ export default function Canvas({
   // Apply viewport transformation to context
   const applyViewportTransform = useCallback((ctx: CanvasRenderingContext2D) => {
     const { x, y, zoom } = viewportRef.current;
-    ctx.setTransform(zoom, 0, 0, zoom, x * zoom, y * zoom);
+    ctx.setTransform(zoom, 0, 0, zoom, -x * zoom, -y * zoom);
   }, []);
 
   // Clear and redraw entire canvas
@@ -459,15 +459,15 @@ export default function Canvas({
     
     if (newZoom === oldZoom) return; // No change in zoom
     
-    // Get canvas center
+    // Get the current center of the canvas in screen coordinates
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     
-    // Calculate the center point in world coordinates
+    // Convert current center to world coordinates
     const worldCenterX = viewport.x + centerX / oldZoom;
     const worldCenterY = viewport.y + centerY / oldZoom;
     
-    // Calculate new viewport position to keep the center point centered
+    // Calculate new viewport position to keep the world center at screen center
     const newX = worldCenterX - centerX / newZoom;
     const newY = worldCenterY - centerY / newZoom;
     
