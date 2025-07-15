@@ -50,6 +50,8 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Fixed**: Viewport transformation to prevent drawing drift during zoom operations
 - ✅ **Fixed**: Panning direction to match natural drag behavior (drag right = content moves right)
 - ✅ **Fixed**: Coordinate transformation system for proper cursor alignment at all zoom levels
+- ✅ **Changed**: Updated all routes from /whiteboard to /sessions for better clarity
+- ✅ **Updated**: Session sharing URLs now use /sessions/:sessionId format
 
 ## System Architecture
 

@@ -29,7 +29,7 @@ function Router() {
         {!user ? (
           <>
             <Route path="/" component={Landing} />
-            <Route path="/whiteboard/:sessionId">
+            <Route path="/sessions/:sessionId">
               {(params) => {
                 // Store session ID in localStorage and redirect to login
                 if (params.sessionId) {
@@ -47,8 +47,8 @@ function Router() {
         ) : (
           <>
             <Route path="/" component={Home} />
-            <Route path="/whiteboard" component={Whiteboard} />
-            <Route path="/whiteboard/:sessionId" component={Whiteboard} />
+            <Route path="/sessions" component={Whiteboard} />
+            <Route path="/sessions/:sessionId" component={Whiteboard} />
           </>
         )}
         <Route component={NotFound} />

@@ -62,7 +62,7 @@ export default function Home() {
   const copySessionLink = async () => {
     if (!createdSession) return;
     
-    const sessionUrl = `${window.location.origin}/whiteboard/${createdSession.id}`;
+    const sessionUrl = `${window.location.origin}/sessions/${createdSession.id}`;
     await navigator.clipboard.writeText(sessionUrl);
     setCopied(true);
     
@@ -76,7 +76,7 @@ export default function Home() {
 
   const joinSession = () => {
     if (!createdSession) return;
-    window.location.href = `/whiteboard/${createdSession.id}`;
+    window.location.href = `/sessions/${createdSession.id}`;
   };
 
   return (
