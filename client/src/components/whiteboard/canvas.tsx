@@ -271,8 +271,8 @@ export default function Canvas({
   const screenToWorld = useCallback((screenX: number, screenY: number) => {
     const { x, y, zoom } = viewportRef.current;
     return {
-      x: (screenX / zoom) - x,
-      y: (screenY / zoom) - y,
+      x: x + screenX / zoom,
+      y: y + screenY / zoom,
     };
   }, []);
 
@@ -280,8 +280,8 @@ export default function Canvas({
   const worldToScreen = useCallback((worldX: number, worldY: number) => {
     const { x, y, zoom } = viewportRef.current;
     return {
-      x: (worldX + x) * zoom,
-      y: (worldY + y) * zoom,
+      x: (worldX - x) * zoom,
+      y: (worldY - y) * zoom,
     };
   }, []);
 
