@@ -46,6 +46,7 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Added**: Zoom indicator with usage hints
 - ✅ **Fixed**: Smooth zoom with 1% increments per scroll wheel step
 - ✅ **Fixed**: Stable zoom centering to prevent canvas thrashing during zoom
+- ✅ **Fixed**: Proportional zoom that centers around canvas center for consistent behavior
 
 ## System Architecture
 

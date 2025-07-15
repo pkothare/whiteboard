@@ -452,12 +452,6 @@ export default function Canvas({
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     
-    // Get mouse position relative to canvas center
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    
     // Calculate zoom change
     const zoomDelta = event.deltaY > 0 ? -0.01 : 0.01;
     const oldZoom = viewport.zoom;
@@ -465,13 +459,17 @@ export default function Canvas({
     
     if (newZoom === oldZoom) return; // No change in zoom
     
-    // Calculate the point in world coordinates that should stay under the mouse
-    const worldX = viewport.x + mouseX / oldZoom;
-    const worldY = viewport.y + mouseY / oldZoom;
+    // Get canvas center
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
     
-    // Calculate new viewport position to keep the world point under the mouse
-    const newX = worldX - mouseX / newZoom;
-    const newY = worldY - mouseY / newZoom;
+    // Calculate the center point in world coordinates
+    const worldCenterX = viewport.x + centerX / oldZoom;
+    const worldCenterY = viewport.y + centerY / oldZoom;
+    
+    // Calculate new viewport position to keep the center point centered
+    const newX = worldCenterX - centerX / newZoom;
+    const newY = worldCenterY - centerY / newZoom;
     
     setViewport({
       x: newX,
