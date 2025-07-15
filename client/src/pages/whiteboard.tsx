@@ -50,6 +50,7 @@ export default function Whiteboard() {
   const [isToolbarCollapsed, setIsToolbarCollapsed] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [canvasZoom, setCanvasZoom] = useState(1);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const messageHandlersRef = useRef<((message: WSMessage) => void)[]>([]);
 
@@ -381,7 +382,7 @@ export default function Whiteboard() {
             </div>
           )}
           
-          <div className="w-full h-full">
+          <div className="w-full h-full canvas-container">
             <Canvas
               tool={tool}
               color={color}
@@ -391,7 +392,16 @@ export default function Whiteboard() {
               isConnected={isConnected}
               userId={currentUser?.userId}
               userCursors={userCursors}
+              onViewportChange={(viewport) => setCanvasZoom(viewport.zoom)}
             />
+            
+            {/* Zoom indicator - bottom right */}
+            <div className="absolute bottom-4 right-4 z-10 bg-black/10 backdrop-blur-sm rounded-lg px-3 py-1 text-sm text-gray-700">
+              <span className="font-medium">Zoom: {Math.round(canvasZoom * 100)}%</span>
+              <div className="text-xs text-gray-500 mt-1">
+                Scroll to zoom • Middle drag to pan
+              </div>
+            </div>
           </div>
         </div>
 

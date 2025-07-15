@@ -10,6 +10,13 @@ interface CanvasProps {
   isConnected: boolean;
   userId?: string;
   userCursors: CursorData[];
+  onViewportChange?: (viewport: ViewportTransform) => void;
+}
+
+interface ViewportTransform {
+  x: number;
+  y: number;
+  zoom: number;
 }
 
 export default function Canvas({
@@ -21,12 +28,23 @@ export default function Canvas({
   isConnected,
   userId,
   userCursors,
+  onViewportChange,
 }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const isDrawingRef = useRef(false);
+  const isPanningRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const lastPanPointRef = useRef<{ x: number; y: number } | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [viewport, setViewport] = useState<ViewportTransform>({ x: 0, y: 0, zoom: 1 });
+  const viewportRef = useRef<ViewportTransform>({ x: 0, y: 0, zoom: 1 });
+
+  // Update viewport reference whenever viewport state changes
+  useEffect(() => {
+    viewportRef.current = viewport;
+    onViewportChange?.(viewport);
+  }, [viewport, onViewportChange]);
 
   // Initialize canvas
   useEffect(() => {
@@ -60,6 +78,9 @@ export default function Canvas({
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.imageSmoothingEnabled = true;
+      
+      // Redraw with new size
+      redrawCanvas();
     };
 
     resizeCanvas();
@@ -69,6 +90,46 @@ export default function Canvas({
       window.removeEventListener('resize', resizeCanvas);
     };
   }, []);
+
+  // Store all strokes for infinite canvas
+  const strokesRef = useRef<any[]>([]);
+  const currentStrokeRef = useRef<any[]>([]);
+
+  // Apply viewport transformation to context
+  const applyViewportTransform = useCallback((ctx: CanvasRenderingContext2D) => {
+    const { x, y, zoom } = viewportRef.current;
+    ctx.setTransform(zoom, 0, 0, zoom, x * zoom, y * zoom);
+  }, []);
+
+  // Clear and redraw entire canvas
+  const redrawCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const ctx = ctxRef.current;
+    if (!ctx || !canvas) return;
+
+    // Clear canvas
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Apply viewport transform
+    applyViewportTransform(ctx);
+
+    // Redraw all strokes
+    strokesRef.current.forEach(stroke => {
+      if (stroke.points.length < 2) return;
+
+      ctx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.size;
+      ctx.beginPath();
+      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+      
+      for (let i = 1; i < stroke.points.length; i++) {
+        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+      }
+      ctx.stroke();
+    });
+  }, [applyViewportTransform]);
 
   // Handle WebSocket messages
   useEffect(() => {
@@ -106,11 +167,23 @@ export default function Canvas({
     onMessage(handleMessage);
   }, [onMessage, userId]);
 
-  // Drawing functions
+  // Remote stroke handling
+  const remoteStrokeRef = useRef<any[]>([]);
+
   const startRemoteStroke = (strokeData: StrokeData) => {
     const ctx = ctxRef.current;
     if (!ctx) return;
 
+    // Start new remote stroke
+    remoteStrokeRef.current = [{
+      x: strokeData.x,
+      y: strokeData.y,
+      tool: strokeData.tool,
+      color: strokeData.color,
+      size: strokeData.size,
+    }];
+
+    applyViewportTransform(ctx);
     ctx.globalCompositeOperation = strokeData.tool === 'eraser' ? 'destination-out' : 'source-over';
     ctx.strokeStyle = strokeData.color;
     ctx.lineWidth = strokeData.size;
@@ -122,6 +195,16 @@ export default function Canvas({
     const ctx = ctxRef.current;
     if (!ctx) return;
 
+    // Add to remote stroke
+    remoteStrokeRef.current.push({
+      x: strokeData.x,
+      y: strokeData.y,
+      tool: strokeData.tool,
+      color: strokeData.color,
+      size: strokeData.size,
+    });
+
+    applyViewportTransform(ctx);
     ctx.lineTo(strokeData.x, strokeData.y);
     ctx.stroke();
   };
@@ -129,6 +212,18 @@ export default function Canvas({
   const endRemoteStroke = () => {
     const ctx = ctxRef.current;
     if (!ctx) return;
+
+    // Save completed remote stroke
+    if (remoteStrokeRef.current.length > 0) {
+      const firstPoint = remoteStrokeRef.current[0];
+      strokesRef.current.push({
+        points: [...remoteStrokeRef.current],
+        tool: firstPoint.tool,
+        color: firstPoint.color,
+        size: firstPoint.size,
+      });
+      remoteStrokeRef.current = [];
+    }
 
     ctx.closePath();
   };
@@ -138,7 +233,13 @@ export default function Canvas({
     const ctx = ctxRef.current;
     if (!ctx || !canvas) return;
 
+    // Clear stored strokes
+    strokesRef.current = [];
+    currentStrokeRef.current = [];
+    remoteStrokeRef.current = [];
+
     // Clear the entire canvas
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // Reset any drawing state
@@ -151,8 +252,8 @@ export default function Canvas({
     clearCanvas();
   };
 
-  // Get coordinates from event
-  const getCoordinates = (event: React.MouseEvent | React.TouchEvent) => {
+  // Get coordinates from event (screen coordinates)
+  const getScreenCoordinates = (event: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
@@ -160,35 +261,75 @@ export default function Canvas({
     const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
     const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
 
-    // Calculate coordinates relative to canvas display size (not actual canvas size)
     const x = clientX - rect.left;
     const y = clientY - rect.top;
 
     return { x, y };
   };
 
+  // Convert screen coordinates to world coordinates
+  const screenToWorld = useCallback((screenX: number, screenY: number) => {
+    const { x, y, zoom } = viewportRef.current;
+    return {
+      x: (screenX / zoom) - x,
+      y: (screenY / zoom) - y,
+    };
+  }, []);
+
+  // Convert world coordinates to screen coordinates
+  const worldToScreen = useCallback((worldX: number, worldY: number) => {
+    const { x, y, zoom } = viewportRef.current;
+    return {
+      x: (worldX + x) * zoom,
+      y: (worldY + y) * zoom,
+    };
+  }, []);
+
   // Mouse/Touch event handlers
   const handleStart = useCallback((event: React.MouseEvent | React.TouchEvent) => {
-    if (!isConnected || tool === 'select') return;
+    if (!isConnected) return;
 
     event.preventDefault();
-    const coords = getCoordinates(event);
+    const screenCoords = getScreenCoordinates(event);
+    const button = 'button' in event ? event.button : 0;
+
+    // Handle middle mouse button for panning
+    if (button === 1) {
+      isPanningRef.current = true;
+      lastPanPointRef.current = screenCoords;
+      return;
+    }
+
+    // Handle drawing
+    if (tool === 'select' || button !== 0) return;
+
+    const worldCoords = screenToWorld(screenCoords.x, screenCoords.y);
     
     isDrawingRef.current = true;
-    lastPointRef.current = coords;
+    lastPointRef.current = worldCoords;
+
+    // Start new stroke
+    currentStrokeRef.current = [{
+      x: worldCoords.x,
+      y: worldCoords.y,
+      tool,
+      color,
+      size,
+    }];
 
     const ctx = ctxRef.current;
     if (!ctx) return;
 
+    applyViewportTransform(ctx);
     ctx.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over';
     ctx.strokeStyle = color;
     ctx.lineWidth = size;
     ctx.beginPath();
-    ctx.moveTo(coords.x, coords.y);
+    ctx.moveTo(worldCoords.x, worldCoords.y);
 
     const strokeData: StrokeData = {
-      x: coords.x,
-      y: coords.y,
+      x: worldCoords.x,
+      y: worldCoords.y,
       tool,
       color,
       size,
@@ -199,20 +340,37 @@ export default function Canvas({
       data: strokeData,
       timestamp: Date.now(),
     });
-  }, [isConnected, tool, color, size, onSendMessage]);
+  }, [isConnected, tool, color, size, onSendMessage, screenToWorld, applyViewportTransform]);
 
   const handleMove = useCallback((event: React.MouseEvent | React.TouchEvent) => {
     if (!isConnected) return;
 
     event.preventDefault();
-    const coords = getCoordinates(event);
+    const screenCoords = getScreenCoordinates(event);
+    const worldCoords = screenToWorld(screenCoords.x, screenCoords.y);
 
-    // Send cursor position - use the same coordinates as drawing
+    // Handle panning
+    if (isPanningRef.current && lastPanPointRef.current) {
+      const deltaX = screenCoords.x - lastPanPointRef.current.x;
+      const deltaY = screenCoords.y - lastPanPointRef.current.y;
+      
+      setViewport(prev => ({
+        ...prev,
+        x: prev.x + deltaX / prev.zoom,
+        y: prev.y + deltaY / prev.zoom,
+      }));
+      
+      lastPanPointRef.current = screenCoords;
+      redrawCanvas();
+      return;
+    }
+
+    // Send cursor position in world coordinates
     onSendMessage({
       type: 'cursor_move',
       data: {
-        x: coords.x,
-        y: coords.y
+        x: worldCoords.x,
+        y: worldCoords.y
       },
       timestamp: Date.now(),
     });
@@ -222,12 +380,24 @@ export default function Canvas({
     const ctx = ctxRef.current;
     if (!ctx) return;
 
-    ctx.lineTo(coords.x, coords.y);
+    // Add point to current stroke
+    currentStrokeRef.current.push({
+      x: worldCoords.x,
+      y: worldCoords.y,
+      tool,
+      color,
+      size,
+    });
+
+    applyViewportTransform(ctx);
+    ctx.lineTo(worldCoords.x, worldCoords.y);
     ctx.stroke();
 
+    lastPointRef.current = worldCoords;
+
     const strokeData: StrokeData = {
-      x: coords.x,
-      y: coords.y,
+      x: worldCoords.x,
+      y: worldCoords.y,
       tool,
       color,
       size,
@@ -238,15 +408,30 @@ export default function Canvas({
       data: strokeData,
       timestamp: Date.now(),
     });
+  }, [isConnected, tool, color, size, onSendMessage, screenToWorld, applyViewportTransform, redrawCanvas]);
 
-    lastPointRef.current = coords;
-  }, [isConnected, tool, color, size, onSendMessage]);
+  const handleEnd = useCallback(() => {
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      lastPanPointRef.current = null;
+      return;
+    }
 
-  const handleEnd = useCallback((event: React.MouseEvent | React.TouchEvent) => {
-    if (!isConnected || !isDrawingRef.current) return;
+    if (!isDrawingRef.current) return;
 
-    event.preventDefault();
     isDrawingRef.current = false;
+    lastPointRef.current = null;
+
+    // Save completed stroke
+    if (currentStrokeRef.current.length > 0) {
+      strokesRef.current.push({
+        points: [...currentStrokeRef.current],
+        tool,
+        color,
+        size,
+      });
+      currentStrokeRef.current = [];
+    }
 
     const ctx = ctxRef.current;
     if (!ctx) return;
@@ -255,12 +440,35 @@ export default function Canvas({
 
     onSendMessage({
       type: 'stroke_end',
-      data: null,
+      data: {},
       timestamp: Date.now(),
     });
+  }, [onSendMessage, tool, color, size]);
 
-    lastPointRef.current = null;
-  }, [isConnected, onSendMessage]);
+  // Handle wheel zoom
+  const handleWheel = useCallback((event: React.WheelEvent) => {
+    event.preventDefault();
+    
+    const screenCoords = getScreenCoordinates(event);
+    const worldCoords = screenToWorld(screenCoords.x, screenCoords.y);
+    
+    // Zoom factor
+    const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+    const newZoom = Math.max(0.1, Math.min(5, viewport.zoom * zoomFactor));
+    
+    // Calculate new viewport position to zoom towards mouse
+    const newX = worldCoords.x - (screenCoords.x / newZoom);
+    const newY = worldCoords.y - (screenCoords.y / newZoom);
+    
+    setViewport({
+      x: newX,
+      y: newY,
+      zoom: newZoom,
+    });
+    
+    // Redraw with new zoom
+    setTimeout(() => redrawCanvas(), 0);
+  }, [viewport, screenToWorld, redrawCanvas]);
 
   // Get cursor style based on tool
   const getCursorStyle = () => {
@@ -277,7 +485,7 @@ export default function Canvas({
   };
 
   return (
-    <div className="absolute inset-0 bg-white">
+    <div className="absolute inset-0 bg-white overflow-hidden">
       <canvas
         ref={canvasRef}
         className={`w-full h-full ${getCursorStyle()}`}
@@ -288,36 +496,32 @@ export default function Canvas({
         onTouchStart={handleStart}
         onTouchMove={handleMove}
         onTouchEnd={handleEnd}
+        onWheel={handleWheel}
+        onContextMenu={(e) => e.preventDefault()}
         style={{ touchAction: 'none' }}
       />
       
       {/* User Cursors */}
       {userCursors.map((cursor) => {
+        // Convert world coordinates to screen coordinates for cursor display
+        const screenPos = worldToScreen(cursor.x, cursor.y);
         return (
           <div
             key={cursor.userId}
             className="absolute pointer-events-none z-10"
             style={{
-              left: cursor.x + 'px',
-              top: cursor.y + 'px',
+              left: `${screenPos.x}px`,
+              top: `${screenPos.y}px`,
+              transform: 'translate(-50%, -50%)',
             }}
           >
-            {/* Cursor dot positioned at exact coordinates */}
-            <div 
-              className="w-3 h-3 rounded-full border-2 border-white shadow-lg"
-              style={{ 
-                backgroundColor: cursor.color,
-                transform: 'translate(-50%, -50%)'
-              }}
+            <div
+              className="w-3 h-3 rounded-full border-2 border-white shadow-md"
+              style={{ backgroundColor: cursor.color }}
             />
-            {/* User name label offset from the cursor dot */}
             <div 
-              className="text-white px-2 py-1 rounded text-xs font-medium absolute whitespace-nowrap"
-              style={{ 
-                backgroundColor: cursor.color,
-                left: '10px',
-                top: '-30px'
-              }}
+              className="absolute top-4 left-2 px-2 py-1 text-xs text-white rounded shadow-md whitespace-nowrap"
+              style={{ backgroundColor: cursor.color }}
             >
               {cursor.userName}
             </div>
