@@ -48,6 +48,7 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Fixed**: Stable zoom centering to prevent canvas thrashing during zoom
 - ✅ **Fixed**: Proportional zoom that centers around canvas center for consistent behavior
 - ✅ **Fixed**: Viewport transformation to prevent drawing drift during zoom operations
+- ✅ **Fixed**: Panning direction to match natural drag behavior (drag right = content moves right)
 
 ## System Architecture
 

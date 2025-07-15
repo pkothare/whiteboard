@@ -356,8 +356,8 @@ export default function Canvas({
       
       setViewport(prev => ({
         ...prev,
-        x: prev.x + deltaX / prev.zoom,
-        y: prev.y + deltaY / prev.zoom,
+        x: prev.x - deltaX / prev.zoom,
+        y: prev.y - deltaY / prev.zoom,
       }));
       
       lastPanPointRef.current = screenCoords;
